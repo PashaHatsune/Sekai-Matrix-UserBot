@@ -3,7 +3,7 @@ import os
 import sys
 from nio import AsyncClient
 from loguru import logger
-
+import asyncio
 # Импортируем реестр, чтобы обновить в нем переменные
 from ... import registry 
 
@@ -47,8 +47,9 @@ def init_client():
         _client_instance = client
         
         # Загружаем модули (если нужно именно здесь)
-        from .load_modues import get_modules
-        get_modules()
+        from .loader import Loader
+        loader = Loader()
+        asyncio.run(loader.register_all_modules())
 
         return _client_instance
 
