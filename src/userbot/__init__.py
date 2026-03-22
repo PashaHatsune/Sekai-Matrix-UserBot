@@ -19,7 +19,7 @@ from loguru import logger
 
 from .registry import active_modules, leave_empty_rooms, join_on_invite, invite_whitelist, owners, appid, version, uri_cache
 from ..settings import config
-from .modules.core.load_modues import get_modules
+from .modules.core.loader import Loader
 from .modules.core.load_settings import load_settings 
 from .modules.core.account_settings import get_account_data, set_account_data
 from .modules.core.init_client import init_client
@@ -106,7 +106,7 @@ async def run(bot):
         logger.error(f"Received Sync Error when trying to do initial sync! Error message is: %s", sync_response.message)
     else:
         for roomid, room in client.rooms.items():
-            logger.info(f"Bot is on '{room.display_name}'({roomid}) with {len(room.users)} users")
+            # logger.info(f"Bot is on '{room.display_name}'({roomid}) with {len(room.users)} users")
             if len(room.users) == 1 and leave_empty_rooms:
                 logger.info(f'Room {roomid} has no other users - leaving it.')
                 logger.info(await client.room_leave(roomid))
@@ -116,8 +116,7 @@ async def run(bot):
             poll_task = asyncio.get_event_loop().create_task(poll_timer(bot))
             load_settings(get_account_data())
 
-            # ИСПОЛЬЗУЕМ functools.partial для передачи bot в колбэки
-            # Теперь message_cb(bot, room, event) будет вызываться корректно
+ 
             client.add_event_callback(functools.partial(message_cb, bot), RoomMessageText)
             client.add_event_callback(functools.partial(invite_cb, bot), (InviteEvent,))
             client.add_event_callback(functools.partial(memberevent_cb, bot), (RoomMemberEvent,))
