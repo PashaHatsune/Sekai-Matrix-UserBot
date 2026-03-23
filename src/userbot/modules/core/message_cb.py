@@ -39,11 +39,12 @@ async def message_cb(bot, room, event):
 
     command = body.split().pop(0)
 
-    # Strip away non-alphanumeric characters, including leading ! for security
     command = re.sub(r'\W+', '', command)
 
     # Fallback to any declared aliases
     moduleobject = active_modules.get(command) or active_modules.get(module_aliases.get(command))
+    logger.debug(active_modules.get(command))
+    logger.debug(moduleobject)
 
     if moduleobject is not None:
         if moduleobject.enabled:
