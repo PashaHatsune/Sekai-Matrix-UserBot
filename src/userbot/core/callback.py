@@ -59,21 +59,16 @@ class CallBack:
 
 
     async def message_cb(self, room, event):
-        # Ignore if asked to ignore
-        if self.bot.should_ignore_event(event):
-            # logger.debug('Ignoring event!')
-            return
+        print(1)
+
         
         body = event.body
-        
         if not self.bot.starts_with_command(body):
             return
-        
 
 
         prefix = "!"
         if event.body.startswith(prefix):
-            # Отрезаем префикс и делим на команду и аргументы
             parts = event.body[len(prefix):].split(None, 1)
             cmd_name = parts[0].lower()
             args = parts[1] if len(parts) > 1 else ""
@@ -89,7 +84,7 @@ class CallBack:
                     except Exception as e:
                         logger.exception(f"Error in command {cmd_name}")
                         await self.bot.send_text(room, f"❌ Ошибка: {e}")
-                    return # Выходим: команда найдена и обработана
+                    return
 
         # 3. Если это не команда, вызываем Watchers (matrix_message)
         for mod in self.bot.all_modules.active_modules.values():
