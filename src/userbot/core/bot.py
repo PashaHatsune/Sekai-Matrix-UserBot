@@ -2,7 +2,7 @@ import asyncio
 from loguru import logger
 import typing
 
-from nio import InviteEvent, RoomMemberEvent, RoomMessageText, SyncError
+from nio import InviteEvent, RoomMemberEvent, RoomMessageText, SyncError, RoomMessage
 
 from .methods import Methods
 from .callback import CallBack
@@ -52,7 +52,7 @@ class Bot(Methods):
         # if hasattr(cb_handler, "message_cb"):
         #     self.client.add_event_callback(cb_handler.message_cb, RoomMessageText)
 
-
+        # self.client.add_event_callback(cb_handler.message_cb, RoomMessage)
         
         self.client.add_event_callback(
             self.security.gate(cb_handler.invite_cb), 
@@ -99,7 +99,7 @@ class Bot(Methods):
             if getattr(instance, "enabled", True):
                 if hasattr(instance, "_matrix_start"):
                     try:
-                        instance._matrix_start(self) 
+                        await instance._matrix_start(self) 
                     except Exception:
                         logger.exception(f'Error starting module {name}')
         logger.info('All modules started.')
@@ -140,8 +140,8 @@ class Bot(Methods):
 
 
     def should_ignore_event(self, event):
-        if event.sender == self.client.user_id:
-            return True
+        # if event.sender == self.client.user_id:
+        #     return True
 
         # event.server_timestamp приходит в миллисекундах
         if hasattr(event, 'server_timestamp'):
@@ -193,7 +193,6 @@ class Bot(Methods):
                     print(data)
                     if data is None:
                         logger.info("Initializing account data for the first time...")
-                        print(1)
                         self.save_settings() 
 
                     await self.all_modules.register_all()
