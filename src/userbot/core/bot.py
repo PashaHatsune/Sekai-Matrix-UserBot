@@ -1,8 +1,9 @@
+import time
 import asyncio
-from loguru import logger
 import typing
 
-from nio import InviteEvent, RoomMemberEvent, RoomMessageText, SyncError, RoomMessage
+from loguru import logger
+from nio import InviteEvent, RoomMemberEvent, RoomMessageText, SyncError, AsyncClient
 
 from .methods import Methods
 from .callback import CallBack
@@ -13,9 +14,6 @@ from .security import SekaiSecurity
 if typing.TYPE_CHECKING:
     from ...database.methods import Database
 
-import time
-
-from nio import AsyncClient
 
 class Bot(Methods):
     def __init__(self, db: 'Database', client=None):
