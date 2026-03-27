@@ -122,81 +122,94 @@ class Methods:
             }
         await self.room_send(room.room_id, event, 'm.room.message', locationmsg)
 
+    async def upload_file( # ебнутый вайб кодинг здесь. Всё хорошо
+                self,
+                file: typing.Union[str, bytes, Path],
+                filename: typing.Optional[str] = None
+            ) -> typing.Tuple[typing.Optional[str], dict]:
 
-    async def upload_file(
-        self,
-        file: typing.Union[str, bytes, Path],
-        filename: typing.Optional[str] = None
-    ) -> typing.Tuple[typing.Optional[str], dict]:
+                if isinstance(file, (str, Path)):
+                    path = Path(file)
+                    data = await asyncio.to_thread(path.read_bytes)
+                    filename = filename or path.name
+                else:
+                    data = file
+                    filename = filename or "image.png"
 
-        if isinstance(file, (str, Path)):
-            path = Path(file)
-            data = await asyncio.to_thread(path.read_bytes)
-            filename = filename or path.name
-        else:
-            data = file
-            filename = filename or "image.png"
+                mime_type, _ = mimetypes.guess_type(filename)
+                
+                width, height = 0, 0
+                try:
+                    def _probe():
+                        with Image.open(BytesIO(data)) as img:
+                            return img.width, img.height, img.format.lower()
+                    
+                    width, height, fmt = await asyncio.to_thread(_probe)
+                    
+                    if fmt:
+                        mime_type = f"image/{fmt}"
+                        if "." not in filename:
+                            filename = f"{filename}.{fmt}"
+                except Exception as e:
+                    logger.warning(f"PIL probe failed: {e}. Image might be sent as file.")
+                    mime_type = mime_type or "application/octet-stream"
 
-        mime_type, _ = mimetypes.guess_type(filename)
-        
-        width, height = 0, 0
-        try:
-            def _probe():
-                with Image.open(BytesIO(data)) as img:
-                    return img.width, img.height, img.format.lower()
-            
-            width, height, fmt = await asyncio.to_thread(_probe)
-            if not mime_type or not mime_type.startswith("image/"):
-                mime_type = f"image/{fmt}"
-        except Exception:
-            mime_type = mime_type or "application/octet-stream"
+                upload_result = await self.client.upload(
+                    BytesIO(data),
+                    content_type=mime_type,
+                    filename=filename,
+                    filesize=len(data)
+                )
 
-        resp, _ = await self.client.upload(
-            BytesIO(data),
-            content_type=mime_type,
-            filename=filename,
-            filesize=len(data)
-        )
+                resp = upload_result[0] if isinstance(upload_result, tuple) else upload_result
 
-        if isinstance(resp, UploadResponse):
-            return resp.content_uri, {
-                "mimetype": mime_type,
-                "size": len(data),
-                "w": width,
-                "h": height
-            }
-        return None, {}
-
+                if isinstance(resp, UploadResponse):
+                    return resp.content_uri, {
+                        "mimetype": mime_type,
+                        "size": len(data),
+                        "w": width,
+                        "h": height
+                    }
+                
+                if isinstance(resp, UploadError):
+                    logger.error(f"Upload failed: {resp.message}")
+                    
+                return None, {}
 
     async def send_image(
             self,
             room: MatrixRoom,
-            image: str,
+            image: typing.Union[str, bytes],
             body: str = "Image",
             event: RoomMessage = None,
             **kwargs
-    ):
-        """
-        Отправка изображения (локального или по ссылке)
-        """
-        mxc_url = image
-        info = {}
+        ):
+            mxc_url = image
+            info = {}
+            filename = kwargs.pop("filename", None)
 
-        if not str(image).startswith("mxc://"):
-            mxc_url, info = await self.upload_file(image)
-            if not mxc_url:
-                return logger.error("Failed to upload image")
+            if not isinstance(image, str) or not image.startswith("mxc://"):
+                mxc_url, info = await self.upload_file(image, filename=filename)
+                if not mxc_url:
+                    return logger.error("Failed to upload image")
 
-        info.update(kwargs)
+            current_mime = info.get("mimetype", "")
+            ext = current_mime.split("/")[-1] if "/" in current_mime else "png"
+            if not body.lower().endswith((".", ".png", ".jpg", ".jpeg", ".webp", ".gif")):
+                display_body = f"{body}.{ext}"
+            else:
+                display_body = body
 
-        msg = {
-            "url": mxc_url,
-            "body": body,
-            "msgtype": "m.image",
-            "info": info
-        }
+            info.update(kwargs)
 
-        return await self.room_send(room.room_id, event, 'm.room.message', msg)
+            msg = {
+                "body": display_body,
+                "msgtype": "m.image",
+                "url": mxc_url,
+                "info": info
+            }
+
+            return await self.room_send(room.room_id, event, 'm.room.message', msg)
 
 
     async def send_video(
