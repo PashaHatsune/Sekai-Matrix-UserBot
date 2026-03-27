@@ -80,7 +80,7 @@ docs/_build/
 
 # PyBuilder
 target/
-
+voice_msg.py
 # Jupyter Notebook
 .ipynb_checkpoints
 
