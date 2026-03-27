@@ -1,4 +1,4 @@
-from ..core import loader
+from ...core import loader
 
 
 @loader.tds

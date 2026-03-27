@@ -1,6 +1,6 @@
 import sys
 
-from ..core import loader
+from ...core import loader
 
 @loader.tds
 class MatrixModule(loader.Module):
