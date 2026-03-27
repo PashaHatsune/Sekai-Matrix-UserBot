@@ -41,7 +41,6 @@ class SekaiSecurity:
 
 
     def is_owner(self, sender_id: str) -> bool:
-        print(sender_id)
         return sender_id in self.owners
 
 
