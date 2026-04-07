@@ -164,14 +164,24 @@ class MXUserBot(Program):
 
         self.log.info("Комната логов не найдена в конфиге. Создаю новую...")
         owner_id = self.config["matrix"]["owner"]
+        avatar_url = "mxc://pashahatsune.pp.ua/hGaNZRrDKOF5HlHjZ8VilRWj5QHFOXoy"
+
+        initial_state = [
+            {
+                "type": "m.room.avatar",
+                "state_key": "",
+                "content": {"url": avatar_url}
+            }
+        ]
+
         new_room_id = await self.client.create_room(
             name="Sekai Us1111erbot Logs",
             topic="Техническая комната для системных уведомлений и логов",
             is_direct=True,
             visibility=RoomDirectoryVisibility.PRIVATE,
-            invitees=[owner_id]
+            invitees=[owner_id],
+            initial_state=initial_state
         )
-
         logger.error(new_room_id)
         await self.client.join_room(new_room_id)
         await self.client.set_room_tag(new_room_id, "m.favourite", {"order": 0.0})
