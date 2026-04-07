@@ -182,7 +182,6 @@ class MXUserBot(Program):
             invitees=[owner_id],
             initial_state=initial_state
         )
-        logger.error(new_room_id)
         await self.client.join_room(new_room_id)
         await self.client.set_room_tag(new_room_id, "m.favourite", {"order": 0.0})
         await self.config.update_db_key("matrix.log_room_id", str(new_room_id))
@@ -190,7 +189,6 @@ class MXUserBot(Program):
 
         await self.client.send_text(new_room_id, "✅ Комната логов успешно инициализирована.")
 
-        self.log.error(new_room_id)
         self.config["matrix"]["log_room_id"] = str(new_room_id)
         self.config.save()
         
