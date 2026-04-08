@@ -16,9 +16,6 @@ from mautrix.types import (
     EventType,
     ImageInfo,
     MediaMessageEventContent,
-    MessageEvent,
-    StateEvent,
-    RoomDirectoryVisibility,
     TOFUSigningKey,
 )
 from mautrix.util import markdown
@@ -99,39 +96,60 @@ class Module(ABC):
     
 
 
+import aiohttp
+from mautrix.crypto.attachments import encrypt_attachment
 
 
 class UserBotClient(Client):
     async def send_image(
         self,
         room_id,
-        url,
+        url: str | None = None,
+        file_bytes: bytes | None = None,
         info: ImageInfo | None = None,
         file_name: str | None = None,
         caption: str | None = None,
         relates_to=None,
         **kwargs,
     ):
-        if caption is None:
-            return await super().send_image(
-                room_id,
-                url,
-                info=info,
-                file_name=file_name,
-                relates_to=relates_to,
-                **kwargs,
-            )
+        """Авто-шифрование для E2EE чатов с поддержкой caption"""
+        if not url and not file_bytes:
+            raise ValueError("Нужно указать либо url, либо file_bytes")
 
-        content = MediaMessageEventContent(
-            msgtype="m.image",
-            url=url,
-            info=info,
-            body=caption,
-            filename=file_name or "image.png",
-            relates_to=relates_to,
-            format="org.matrix.custom.html",
-            formatted_body=markdown.render(caption),
-        )
+        file_name = file_name or "file.png"
+        is_enc = await self.state_store.is_encrypted(room_id)
+
+        if is_enc:
+            if not file_bytes and url:
+                async with aiohttp.ClientSession() as s:
+                    async with s.get(url) as r:
+                        file_bytes = await r.read()
+
+            enc_data, enc_info = encrypt_attachment(file_bytes)
+            mxc = await self.upload_media(enc_data, mime_type="application/octet-stream", filename=file_name)
+            enc_info.url = mxc
+
+            content = MediaMessageEventContent(
+                msgtype="m.image",
+                body=caption or file_name,
+                info=info,
+                file=enc_info,
+                relates_to=relates_to,
+                format="org.matrix.custom.html",
+                formatted_body=markdown.render(caption or file_name),
+            )
+        else:
+            mxc_url = url or await self.upload_media(file_bytes, mime_type="image/png", filename=file_name)
+            content = MediaMessageEventContent(
+                msgtype="m.image",
+                body=caption or file_name,
+                info=info,
+                url=mxc_url,
+                filename=file_name,
+                relates_to=relates_to,
+                format="org.matrix.custom.html",
+                formatted_body=markdown.render(caption or file_name),
+            )
 
         return await self.send_message_event(
             room_id,
@@ -139,7 +157,6 @@ class UserBotClient(Client):
             content,
             **kwargs,
         )
-
 
 
 
