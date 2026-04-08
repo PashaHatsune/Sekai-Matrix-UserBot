@@ -130,7 +130,6 @@ class MatrixModule(loader.Module):
                         filename=f"{pack_name}_{i}.webp"
                     )
                     
-                    # 2. Получаем размеры изображения через PIL (она у тебя уже импортирована)
                     with Image.open(io.BytesIO(file_bytes)) as img:
                         width, height = img.size
 
@@ -158,7 +157,6 @@ class MatrixModule(loader.Module):
                     "images": images
                 }
 
-                # Формируем контент пака
                 content = {
                     "pack": {
                         "display_name": f"TG: {title}",
@@ -168,7 +166,6 @@ class MatrixModule(loader.Module):
                     "images": images
                 }
 
-                # Отправляем как State Event (im.ponies.room_emotes)
                 await mx.client.send_state_event(
                     room_id=event.room_id,
                     event_type="im.ponies.room_emotes",

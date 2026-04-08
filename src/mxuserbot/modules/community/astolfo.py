@@ -18,13 +18,6 @@ class MatrixModule(loader.Module):
         [rating] - Отправить фото Астольфо.
         Рейтинги: safe (по умолчанию), questionable, explicit
         """
-        # args = utils.get_args(event)
-        # rating = args[0].lower() if args else "safe"
-        
-        # valid_ratings = ["safe", "questionable", "explicit"]
-        # if rating not in valid_ratings:
-        #     rating = "safe"
-
         async with aiohttp.ClientSession() as s:
             params = {"rating": "safe"}
             # 1. Запрос к API за метаданными
@@ -37,7 +30,6 @@ class MatrixModule(loader.Module):
                 
                 data = await r.json()
                 
-                # Собираем URL из ID и расширения, так как ключа "url" в JSON нет
                 image_id = data["id"]
                 ext = data["file_extension"]
                 image_url = f"https://astolfo.rocks/astolfo/{image_id}.{ext}"
@@ -45,7 +37,6 @@ class MatrixModule(loader.Module):
                 filename = f"{image_id}.{ext}"
                 mime = data.get("mimetype", "image/jpeg")
 
-                # 2. Скачивание самого изображения
                 async with s.get(image_url) as img:
                     if img.status != 200:
                         return await mx.client.send_text(
@@ -54,14 +45,12 @@ class MatrixModule(loader.Module):
                         )
                     image_bytes = await img.read()
 
-                    # 3. Загрузка в медиа-сервер Matrix
                     mxc = await mx.client.upload_media(
                         data=image_bytes,
                         mime_type=mime,
                         filename=filename
                     )
 
-            # 4. Отправка пользователю
             await mx.client.send_image(
                 room_id=event.room_id,
                 url=mxc,
