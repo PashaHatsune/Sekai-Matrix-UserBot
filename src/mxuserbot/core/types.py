@@ -1,8 +1,30 @@
-from loguru import logger
 import asyncio
+import contextlib
+import logging
+import sys
 from abc import ABC
+from typing import Any, AsyncGenerator, Optional, Dict, List
 
+from loguru import logger
+from ruamel.yaml.comments import CommentedMap
 
+from mautrix.client import Client
+from mautrix.client.state_store import MemoryStateStore as BaseMemoryStateStore
+from mautrix.crypto.store import MemoryCryptoStore as BaseMemoryCryptoStore
+from mautrix.types import (
+    CrossSigningUsage,
+    EventType,
+    ImageInfo,
+    MediaMessageEventContent,
+    MessageEvent,
+    StateEvent,
+    RoomDirectoryVisibility,
+    TOFUSigningKey,
+)
+from mautrix.util import markdown
+from mautrix.util.config import BaseFileConfig, RecursiveDict, ConfigUpdateHelper
+
+from ...settings import config
 from . import utils
 
 class ModuleConfig:
@@ -71,10 +93,143 @@ class Module(ABC):
 
 
 
-    
+
     def _matrix_stop(self, mx): pass
     async def _matrix_poll(self, mx, pollcount): pass
     
 
 
+
+
+class UserBotClient(Client):
+    async def send_image(
+        self,
+        room_id,
+        url,
+        info: ImageInfo | None = None,
+        file_name: str | None = None,
+        caption: str | None = None,
+        relates_to=None,
+        **kwargs,
+    ):
+        if caption is None:
+            return await super().send_image(
+                room_id,
+                url,
+                info=info,
+                file_name=file_name,
+                relates_to=relates_to,
+                **kwargs,
+            )
+
+        content = MediaMessageEventContent(
+            msgtype="m.image",
+            url=url,
+            info=info,
+            body=caption,
+            filename=file_name or "image.png",
+            relates_to=relates_to,
+            format="org.matrix.custom.html",
+            formatted_body=markdown.render(caption),
+        )
+
+        return await self.send_message_event(
+            room_id,
+            EventType.ROOM_MESSAGE,
+            content,
+            **kwargs,
+        )
+
+
+
+
+class Config(BaseFileConfig):
+    """Логика конфигурации через SQLite."""
+    def __init__(self, path: str, base_path: str, db: Any = None) -> None:
+        super().__init__(path, base_path)
+        self.db = db
+        self.owner = "core"
+        self._default_values = {
+            "matrix": {
+                "base_url": config.matrix_config.base_url,
+                "username": config.matrix_config.owner,
+                "password": config.matrix_config.password.get_secret_value(),
+                "device_id": "MXBT-SQL", # НОВЫЙ ID для чистой базы
+                "log_room_id": "",
+                "owner": config.matrix_config.owner
+            },
+            "logging": {"version": 1}
+        }
+        self._data = RecursiveDict(self._default_values, CommentedMap)
+
+    def load_base(self) -> RecursiveDict:
+        return RecursiveDict(self._default_values, CommentedMap)
+
+    def load(self) -> None: pass
+    def save(self) -> None: pass
+
+    def do_update(self, helper: ConfigUpdateHelper) -> None:
+        helper.copy("matrix")
+        helper.copy("logging")
+
+    async def load_from_db(self) -> None:
+        if not self.db: return
+        async def fetch_recursive(data_dict: dict, prefix=""):
+            for key, value in data_dict.items():
+                full_key = f"{prefix}{key}"
+                if isinstance(value, dict):
+                    await fetch_recursive(value, f"{full_key}.")
+                else:
+                    db_value = await self.db.get(self.owner, full_key)
+                    if db_value is not None:
+                        self[full_key] = db_value
+        await fetch_recursive(self._default_values)
+
+    async def update_db_key(self, key: str, value: Any) -> None:
+        self[key] = value
+        if self.db:
+            await self.db.set(self.owner, key, value)
+
+
+
+
+
+
+class InterceptHandler(logging.Handler):
+    """Перехватчик стандартных логов Python и перенаправление их в Loguru."""
+    def emit(self, record: logging.LogRecord) -> None:
+        try:
+            level = logger.level(record.levelname).name
+        except ValueError:
+            level = record.levelno
+            
+        frame, depth = sys._getframe(6), 6
+        while frame and frame.f_code.co_filename == logging.__file__:
+            frame = frame.f_back
+            depth += 1
+            
+        logger.opt(depth=depth, exception=record.exc_info).log(level, record.getMessage())
+
+
+
+class MemoryCryptoStore(BaseMemoryCryptoStore):
+    """Исправленное хранилище ключей."""
+    @contextlib.asynccontextmanager
+    async def transaction(self) -> AsyncGenerator[None, None]:
+        yield
+
+    async def put_cross_signing_key(self, user_id: str, usage: CrossSigningUsage, key: str) -> None:
+        """Фикс ошибки AttributeError: can't set attribute."""
+        try:
+            current = self._cross_signing_keys[user_id][usage]
+            self._cross_signing_keys[user_id][usage] = TOFUSigningKey(key=key, first=current.first)
+        except KeyError:
+            self._cross_signing_keys.setdefault(user_id, {})[usage] = TOFUSigningKey(key=key, first=key)
+
+class CustomMemoryStateStore(BaseMemoryStateStore):
+    async def find_shared_rooms(self, user_id: str) -> list[str]:
+        shared = []
+        for room_id, members in getattr(self, "members", {}).items():
+            if user_id in members: shared.append(room_id)
+        return shared
 

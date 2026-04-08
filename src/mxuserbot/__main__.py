@@ -2,182 +2,37 @@ import os
 import sys
 import time
 import logging
-from typing import Optional, Dict, List, Any
+from typing import AsyncGenerator, Optional, Dict, List, Any
 
 from loguru import logger
 from mautrix.client import Client
 from mautrix.api import HTTPAPI
-from mautrix.types import MessageEvent, EventType, StateEvent, RoomDirectoryVisibility
+from mautrix.types import MessageEvent, EventType, StateEvent, RoomDirectoryVisibility, ImageInfo, MediaMessageEventContent
 from mautrix.util.program import Program
-from mautrix.util.config import BaseFileConfig, RecursiveDict, ConfigUpdateHelper
-
-from .core.callback import CallBack
-from .core.loader import Loader
-from .core.security import SekaiSecurity 
-from ..database import Database, AsyncSessionWrapper  
-
-
-
-
-
-# === ОФИЦИАЛЬНЫЕ SQLITE КЛАССЫ MAUTRIX ===
 from mautrix.util.async_db import Database as MautrixDatabase
-from mautrix.crypto.store.asyncpg import PgCryptoStore, PgCryptoStateStore
-
-from .core.callback import CallBack
-from .core.loader import Loader
-from .core.security import SekaiSecurity 
-from ..database import Database, AsyncSessionWrapper  
-
-
-class InterceptHandler(logging.Handler):
-    """Перехватчик стандартных логов Python и перенаправление их в Loguru."""
-    def emit(self, record: logging.LogRecord) -> None:
-        try:
-            level = logger.level(record.levelname).name
-        except ValueError:
-            level = record.levelno
-            
-        frame, depth = sys._getframe(6), 6
-        while frame and frame.f_code.co_filename == logging.__file__:
-            frame = frame.f_back
-            depth += 1
-            
-        logger.opt(depth=depth, exception=record.exc_info).log(level, record.getMessage())
+from mautrix.crypto.store.asyncpg import PgCryptoStore
+from mautrix.crypto.store.asyncpg import PgCryptoStateStore 
+from mautrix.api import Method
+from mautrix.types import TrustState
 
 
 
-
-from ruamel.yaml.comments import CommentedMap
-from ..settings import config
-
-class Config(BaseFileConfig):
-    """Логика конфигурации через SQLite."""
-    def __init__(self, path: str, base_path: str, db: Any = None) -> None:
-        super().__init__(path, base_path)
-        self.db = db
-        self.owner = "core"
-        self._default_values = {
-            "matrix": {
-                "base_url": config.matrix_config.base_url,
-                "username": config.matrix_config.owner,
-                "password": config.matrix_config.password.get_secret_value(),
-                "device_id": "MXBT-SQL", # НОВЫЙ ID для чистой базы
-                "log_room_id": "",
-                "owner": config.matrix_config.owner
-            },
-            "logging": {"version": 1}
-        }
-        self._data = RecursiveDict(self._default_values, CommentedMap)
-
-    def load_base(self) -> RecursiveDict:
-        return RecursiveDict(self._default_values, CommentedMap)
-
-    def load(self) -> None: pass
-    def save(self) -> None: pass
-
-    def do_update(self, helper: ConfigUpdateHelper) -> None:
-        helper.copy("matrix")
-        helper.copy("logging")
-
-    async def load_from_db(self) -> None:
-        if not self.db: return
-        async def fetch_recursive(data_dict: dict, prefix=""):
-            for key, value in data_dict.items():
-                full_key = f"{prefix}{key}"
-                if isinstance(value, dict):
-                    await fetch_recursive(value, f"{full_key}.")
-                else:
-                    db_value = await self.db.get(self.owner, full_key)
-                    if db_value is not None:
-                        self[full_key] = db_value
-        await fetch_recursive(self._default_values)
-
-    async def update_db_key(self, key: str, value: Any) -> None:
-        self[key] = value
-        if self.db:
-            await self.db.set(self.owner, key, value)
-
-
-# class InterceptHandler(logging.Handler):
-#     """Перехватчик стандартных логов Python и перенаправление их в Loguru."""
-    
-#     def emit(self, record: logging.LogRecord) -> None:
-#         try:
-#             level = logger.level(record.levelname).name
-#         except ValueError:
-#             level = record.levelno
-            
-#         frame, depth = sys._getframe(6), 6
-#         while frame and frame.f_code.co_filename == logging.__file__:
-#             frame = frame.f_back
-#             depth += 1
-            
-#         logger.opt(depth=depth, exception=record.exc_info).log(
-#             level, 
-#             record.getMessage()
-        # )
-
-
-def setup_loguru(
-    
-) -> None:
-    """Настройка форматирования и обработчиков для Loguru."""
-    logging.basicConfig(handlers=[InterceptHandler()], level="INFO", force=True)
-    logger.remove()
-    
-    log_format = (
-        "<green>{time:YYYY-MM-DD HH:mm:ss}</green> | "
-        "<level>{level: <8}</level> | "
-        "<cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - "
-        "<level>{message}</level>"
-    )
-    logger.add(sys.stdout, format=log_format, colorize=True)
-
-
-
-from mautrix.util.config import BaseFileConfig, RecursiveDict, ConfigUpdateHelper
-from ruamel.yaml.comments import CommentedMap
-from typing import Any
-
-
-from ..settings import config
-
-
-import contextlib
-from typing import AsyncGenerator, Optional, Dict, List, Any
 from mautrix.crypto import OlmMachine
 
 
-from mautrix.crypto.store import MemoryCryptoStore as BaseMemoryCryptoStore
-from mautrix.types import CrossSigningUsage, TOFUSigningKey
-from mautrix.client.state_store import MemoryStateStore as BaseMemoryStateStore
+from .core.types import InterceptHandler
+from .core.types import UserBotClient
+from .core.types import Config
+from .core.callback import CallBack
+from .core.loader import Loader
+from .core.security import SekaiSecurity 
+from ..database import Database, AsyncSessionWrapper  
 
 
-class MemoryCryptoStore(BaseMemoryCryptoStore):
-    """Исправленное хранилище ключей."""
-    @contextlib.asynccontextmanager
-    async def transaction(self) -> AsyncGenerator[None, None]:
-        yield
-
-    async def put_cross_signing_key(self, user_id: str, usage: CrossSigningUsage, key: str) -> None:
-        """Фикс ошибки AttributeError: can't set attribute."""
-        try:
-            current = self._cross_signing_keys[user_id][usage]
-            self._cross_signing_keys[user_id][usage] = TOFUSigningKey(key=key, first=current.first)
-        except KeyError:
-            self._cross_signing_keys.setdefault(user_id, {})[usage] = TOFUSigningKey(key=key, first=key)
-
-class CustomMemoryStateStore(BaseMemoryStateStore):
-    async def find_shared_rooms(self, user_id: str) -> list[str]:
-        shared = []
-        for room_id, members in getattr(self, "members", {}).items():
-            if user_id in members: shared.append(room_id)
-        return shared
 
 
-from mautrix.api import Method
-from mautrix.types import TrustState
+
+
 
 
 class MXUserBot(Program):
@@ -240,6 +95,7 @@ class MXUserBot(Program):
 
         await self.client.send_text(new_room_id, "✅ Комната логов успешно инициализирована.")
 
+
         self.config["matrix"]["log_room_id"] = str(new_room_id)
         self.config.save()
         
@@ -251,9 +107,14 @@ class MXUserBot(Program):
         """Отправляет текстовое сообщение в комнату логов."""
         target_room = self.config["matrix"]["log_room_id"]
         try:
-            await self.client.send_text(target_room, message)
+            await self.client.send_image(
+                target_room,
+                url="mxc://pashahatsune.pp.ua/TYIaHOreKFTsWSG06xVzm5hA770Cm9K5",
+                caption=message,
+                file_name="photo.png",
+            )
         except Exception as e:
-            self.log.error(f"Ошибка отправки лога в комнату: {e}")
+                self.log.error(f"Ошибка отправки лога в комнату: {e}")
 
 
     def starts_with_command(
@@ -289,43 +150,37 @@ class MXUserBot(Program):
         """Проверяет, является ли отправитель владельцем бота."""
         return evt.sender == self.config["owner"]
 
+    def _setup_loguru(
+        self
+    ) -> None:
+        """Настройка форматирования и обработчиков для Loguru."""
+        logging.basicConfig(handlers=[InterceptHandler()], level="INFO", force=True)
+        logger.remove()
+        
+        log_format = (
+            "<green>{time:YYYY-MM-DD HH:mm:ss}</green> | "
+            "<level>{level: <8}</level> | "
+            "<cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - "
+            "<level>{message}</level>"
+        )
+        logger.add(sys.stdout, format=log_format, colorize=True)
+
+
 
     def prepare_log(
         self
     ) -> None:
         """Инициализация логирования (переопределение базового метода)."""
-        setup_loguru()
+        self._setup_loguru()
         self.log = logger.bind(name=self.name)
 
 
-    # def prepare(self) -> None:
-    #     """Подготовка бота к запуску (переопределение базового метода)."""
-    #     super().prepare()
-    #     config_mat = self.config["matrix"]
-
-    #     # Используем наш пропатченный класс состояния комнат
-    #     self.state_store = CustomMemoryStateStore()
-
-    #     # Используем наш пропатченный класс криптографии
-    #     self.crypto_store = MemoryCryptoStore(
-    #         account_id=config_mat["username"], 
-    #         pickle_key="sekai_secret_pickle_key" 
-    #     )
-
-    #     self.client = Client(
-    #         api=HTTPAPI(base_url=config_mat["base_url"]),
-    #         state_store=self.state_store,
-    #         sync_store=self.crypto_store  # MemoryCryptoStore реализует SyncStore
-    #     )
-
-    #     self.add_startup_actions(self.setup_userbot())
-
-
-    def prepare(self) -> None:
+    def prepare(
+        self
+    ) -> None:
         """Подготовка бота к запуску."""
         super().prepare()
         self.add_startup_actions(self.setup_userbot())
-
 
 
     async def get_args(
@@ -399,7 +254,10 @@ class MXUserBot(Program):
                 cb.message_cb  # Было self.security.gate(cb.message_cb)
             )
 
-    async def setup_userbot(self) -> None:
+
+    async def setup_userbot(
+        self
+    ) -> None:
         try:
             session_wrapper = AsyncSessionWrapper() 
             self.db = Database(session_wrapper) 
@@ -409,10 +267,6 @@ class MXUserBot(Program):
             await self.config.load_from_db()
             conf = self.config["matrix"]
 
-            # Инициализация SQLite базы для Ключей  || ПЕРЕПИСАТЬ
-            import os
-            from mautrix.crypto.store.asyncpg import PgCryptoStore
-            from mautrix.crypto.store.asyncpg import PgCryptoStateStore 
 
             db_path = os.path.join(os.getcwd(), "crypto.db")
             self.log.info(f"Подключение к базе ключей E2EE: {db_path}")
@@ -433,7 +287,7 @@ class MXUserBot(Program):
 
 
             # 3. Инициализация Клиента
-            self.client = Client(
+            self.client = UserBotClient(
                 api=HTTPAPI(base_url=conf["base_url"]),
                 state_store=self.state_store,
                 sync_store=self.crypto_store
