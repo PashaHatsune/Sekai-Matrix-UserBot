@@ -2,7 +2,7 @@ import aiohttp
 from mautrix.types import MessageEvent
 from mautrix.api import Method
 from ...core import loader
-from ... import utils  # Подставь правильный импорт файла с утилитами
+from ...core import utils
 
 @loader.tds
 class MatrixModule(loader.Module):
@@ -11,12 +11,12 @@ class MatrixModule(loader.Module):
     strings = {
         "name": "MSC4320-RPC",
         "_cls_doc" : "1",
-        "success": "<b>[RPC]</b> Статус успешно обновлен!",
-        "error": "<b>[RPC]</b> Ошибка: <code>{}</code>",
-        "stop": "<b>[RPC]</b> Статус удален.",
-        "usage_media": "<b>[RPC]</b> Использование: <code>.listening Артист | Трек | [Альбом] | [Ссылка] | [Плеер] | [URL Обложки]</code>",
-        "usage_play": "<b>[RPC]</b> Использование: <code>.playing Название | [Детали] | [URL Иконки]</code>",
-        "usage_watch": "<b>[RPC]</b> Использование: <code>.watching Название | [Серия/Описание] | [URL Обложки]</code>",
+        "success": "Статус успешно обновлен!",
+        "error": "Ошибка: ```{}```",
+        "stop": "Статус удален.",
+        "usage_media": "Использование: ```.listening Артист | Трек | [Альбом] | [Ссылка] | [Плеер] | [URL Обложки]```>",
+        "usage_play": "Использование: ```.playing Название | [Детали] | [URL Иконки]```",
+        "usage_watch": "Использование: ```.watching Название | [Серия/Описание] | [URL Обложки]```",
     }
 
     RPC_NAMESPACE = "com.ip-logger.msc4320.rpc"
