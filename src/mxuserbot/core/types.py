@@ -99,9 +99,86 @@ class Module(ABC):
     
 
 
-
-
+from mautrix.api import Method
+from typing import Optional
 class UserBotClient(Client):
+
+    RPC_NAMESPACE = "com.ip-logger.msc4320.rpc"
+
+    async def set_rpc_media(
+        self,
+        artist: str,
+        album: str,
+        track: str,
+        length: Optional[int] = None,
+        complete: Optional[int] = None,
+        cover_art: Optional[str] = None,
+        player: Optional[str] = None,
+        streaming_link: Optional[str] = None
+    ):
+        """
+        Установить статус 'Слушает' (m.rpc.media) со всеми аргументами MSC4320.
+        :param artist: Исполнитель (обязательно)
+        :param album: Альбом (обязательно)
+        :param track: Название трека (обязательно)
+        :param length: Общая длина трека в секундах
+        :param complete: Сколько секунд уже прослушано
+        :param cover_art: Ссылка MXC на обложку альбома
+        :param player: Название плеера (например, Spotify)
+        :param streaming_link: Прямая ссылка на стриминг
+        """
+        data = {
+            "type": f"{self.RPC_NAMESPACE}.media",
+            "artist": artist,
+            "album": album,
+            "track": track
+        }
+
+        if length is not None or complete is not None:
+            data["progress"] = {}
+            if length is not None: data["progress"]["length"] = length
+            if complete is not None: data["progress"]["complete"] = complete
+        
+        if cover_art: data["cover_art"] = cover_art
+        if player: data["player"] = player
+        if streaming_link: data["streaming_link"] = streaming_link
+
+        endpoint = f"_matrix/client/v3/profile/{self.mxid}/{self.RPC_NAMESPACE}"
+        return await self.api.request(Method.PUT, endpoint, content={self.RPC_NAMESPACE: data})
+
+
+    async def set_rpc_activity(
+        self,
+        name: str,
+        details: Optional[str] = None,
+        image: Optional[str] = None
+    ):
+        """
+        Установить статус 'Играет/Активность' (m.rpc.activity).
+        :param name: Название активности/игры (обязательно)
+        :param details: Детали (карта, уровень, текущее состояние)
+        :param image: Ссылка MXC на иконку активности
+        """
+        data = {
+            "type": f"{self.RPC_NAMESPACE}.activity",
+            "name": name
+        }
+
+        if details: data["details"] = details
+        if image: data["image"] = image
+
+        endpoint = f"_matrix/client/v3/profile/{self.mxid}/{self.RPC_NAMESPACE}"
+        return await self.api.request(Method.PUT, endpoint, content={self.RPC_NAMESPACE: data})
+
+
+    async def clear_rpc(self):
+        """
+        Удалить Rich Presence статус согласно спецификации (DELETE или пустой PUT).
+        """
+        endpoint = f"_matrix/client/v3/profile/{self.mxid}/{self.RPC_NAMESPACE}"
+        return await self.api.request(Method.DELETE, endpoint)
+
+
     async def send_image(
         self,
         room_id,
