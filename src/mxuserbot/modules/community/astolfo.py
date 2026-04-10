@@ -1,6 +1,6 @@
 import aiohttp
 from mautrix.types import MessageEvent
-from ...core import loader
+from ...core import loader, utils
 
 @loader.tds
 class MatrixModule(loader.Module):
@@ -50,7 +50,8 @@ class MatrixModule(loader.Module):
                         filename=filename
                     )
 
-            await mx.client.send_image(
+            await utils.send_image(
+                mx,
                 room_id=event.room_id,
                 url=mxc,
                 file_name=filename,

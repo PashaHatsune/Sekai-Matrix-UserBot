@@ -237,7 +237,8 @@ class MatrixModule(loader.Module):
                     last_song = current_song
 
                     if current_song:
-                        await mx.client.set_rpc_media(
+                        await utils.set_rpc_media(
+                            mx,
                             artist=current_song["artist"],
                             album=current_song["album"],
                             track=current_song["track"],
@@ -246,7 +247,8 @@ class MatrixModule(loader.Module):
                             streaming_link=current_song["song_url"]
                         )
                     else:
-                        await mx.client.set_rpc_activity(
+                        await utils.set_rpc_activity(
+                            mx,
                             name="Ничего не играет",
                             details="idle"
                         )
