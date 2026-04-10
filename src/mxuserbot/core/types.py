@@ -15,10 +15,14 @@ from mautrix.crypto.attachments import encrypt_attachment
 from mautrix.crypto.store import MemoryCryptoStore as BaseMemoryCryptoStore
 from mautrix.types import (
     CrossSigningUsage,
+    EventID,
     EventType,
+    Format,
     ImageInfo,
     MediaMessageEventContent,
     MessageType,
+    RelatesTo,
+    RoomID,
     TOFUSigningKey,
 )
 from mautrix.util import markdown
@@ -28,14 +32,15 @@ from ...settings import config
 from . import utils
 
 class ModuleConfig:
-    def __init__(self, db, module_name, **defaults):
-        self._db = db
-        self._module_name = module_name
+    def __init__(self, getter_func, setter_func, **defaults):
+        self._getter = getter_func
+        self._setter = setter_func
         self._cache = defaults.copy()
 
     async def _load_from_db(self):
         for key in self._cache.keys():
-            val = await self._db.get(self._module_name, key, self._cache[key])
+            # Используем переданную безопасную функцию
+            val = await self._getter(key, self._cache[key])
             self._cache[key] = val
 
     def __getitem__(self, key):
@@ -43,8 +48,8 @@ class ModuleConfig:
 
     def __setitem__(self, key, value):
         self._cache[key] = value
-        asyncio.create_task(self._db.set(self._module_name, key, value))
-
+        # Используем переданную безопасную функцию
+        asyncio.create_task(self._setter(key, value))
 
 class Module(ABC):
     __origin__ = "<unknown>"
@@ -54,38 +59,52 @@ class Module(ABC):
     config = {}
     strings = {}
 
-    async def _internal_init(self, name, db, allmodules):
+    async def _internal_init(self, name, db, loader_or_dict, is_core: bool):
         self.name = name
-        self.db = db
-        self.allmodules = allmodules
+        self._is_core = is_core
+        self.name = name
         self.enabled = True
         self.logger = logger.bind(name=self.name)
+        self._is_core = is_core
         
-        self.strings = getattr(self.__class__, "strings", {}).copy()
+        if is_core:
+            self._db = db
+            self.loader = loader_or_dict 
+            self.allmodules = loader_or_dict.active_modules 
+        else:
+            self._db = None
+            self.loader = None
+            self.allmodules = loader_or_dict # Это просто dict
 
+        self._get = db.get
+        self._set = db.set
+
+
+        self.strings = getattr(self.__class__, "strings", {}).copy()
         self.friendly_name = self.strings.get("name") or self.config.get("name") or self.__class__.__name__
 
         defaults = getattr(self, "config", {})
-        self.config = ModuleConfig(self.db, self.name, **defaults)
+        
+        self.config = ModuleConfig(self._get, self._set, **defaults)
         await self.config._load_from_db()
 
         self._commands = {}
         for cmd_name, func in utils.get_commands(self.__class__).items():
             self._commands[cmd_name] = getattr(self, func.__name__)
-    
+
     def _help(self):
-        """Возвращает основную документацию модуля"""
         return self.strings.get("_cls_doc", "Описание отсутствует")
+
 
     @property
     def commands(self):
         return self._commands
 
     async def _get(self, key, default=None): 
-        return await self.db.get(self.name, key, default)
+        return await self._db.get(self.name, key, default)
         
     async def _set(self, key, value): 
-        return await self.db.set(self.name, key, value)
+        return await self._db.set(self.name, key, value)
 
     async def _matrix_start(self, mx): pass
     async def _matrix_message(self, mx, event): pass
@@ -98,6 +117,7 @@ class Module(ABC):
     async def _matrix_poll(self, mx, pollcount): pass
     
 
+from mautrix.types import TextMessageEventContent
 
 from mautrix.api import Method
 from typing import Optional
@@ -248,12 +268,17 @@ class UserBotClient(Client):
 
         content = MediaMessageEventContent(**content_data)
 
+
         return await self.send_message_event(
             room_id,
             EventType.ROOM_MESSAGE,
             content,
             **kwargs,
         )
+    
+    
+    
+
 
 class Config(BaseFileConfig):
     """Логика конфигурации через SQLite."""
