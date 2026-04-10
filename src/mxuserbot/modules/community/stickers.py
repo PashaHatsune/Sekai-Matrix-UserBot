@@ -24,7 +24,6 @@ class MatrixModule(loader.Module):
     BOT_TOKEN = "8662794033:AAEqJGRTP9Z_BctcSd5QIupqXoKl07ul360"
 
     async def _convert_video_to_webp(self, video_bytes: bytes) -> bytes:
-        """Конвертирует WebM в анимированный WebP используя библиотеку av и Pillow"""
         try:
             return await asyncio.to_thread(self._sync_convert, video_bytes)
         except Exception as e:
@@ -56,7 +55,7 @@ class MatrixModule(loader.Module):
             format="WEBP",
             save_all=True,
             append_images=frames[1:],
-            duration=40, # ~25 FPS
+            duration=40,
             loop=0,
             quality=50,
             lossless=False
@@ -65,25 +64,18 @@ class MatrixModule(loader.Module):
 
     @loader.command()
     async def port(self, mx: Any, event: MessageEvent):
-        """Портировать стикеры (.port <ссылка>)"""
-        if not event.content.body:
+        """1"""
+        body = getattr(event.content, "body", "")
+        if not body:
             return
-            
-        body = event.content.body
 
         match = re.search(r"t\.me/addstickers/([A-Za-z0-9_]+)", body)
         if not match:
-            await mx.client.send_text(
-                room_id=event.room_id, 
-                html=self.strings["bad_url"]
-            )
+            await mx.answer(self.strings.get("bad_url"))
             return
 
         pack_name = match.group(1)
-        await mx.client.send_text(
-            room_id=event.room_id, 
-            html=self.strings["start"]
-        )
+        await mx.answer(self.strings.get("start"))
 
         try:
             async with aiohttp.ClientSession() as session:
@@ -92,10 +84,7 @@ class MatrixModule(loader.Module):
                     data = await r.json()
 
                 if not data.get("ok"):
-                    await mx.client.send_text(
-                        room_id=event.room_id, 
-                        html=self.strings["error"]
-                    )
+                    await mx.answer(self.strings.get("error"))
                     return
 
                 result = data["result"]
@@ -120,7 +109,6 @@ class MatrixModule(loader.Module):
                     if is_video or file_path.endswith(".webm"):
                         file_bytes = await self._convert_video_to_webp(file_bytes)
                     
-                    
                     mxc_url = await mx.client.upload_media(
                         data=file_bytes, 
                         mime_type="image/webp", 
@@ -144,16 +132,6 @@ class MatrixModule(loader.Module):
                             "usage": ["sticker"]
                         }
 
-                state_type = "im.ponies.room_emotes"
-                content = {
-                    "pack": {
-                        "display_name": f"TG: {title}",
-                        "usage": ["sticker"],
-                        "avatar_url": list(images.values())[0]["url"] if images else ""
-                    },
-                    "images": images
-                }
-
                 content = {
                     "pack": {
                         "display_name": f"TG: {title}",
@@ -170,13 +148,6 @@ class MatrixModule(loader.Module):
                     state_key=pack_id
                 )
 
-                await mx.client.send_text(
-                    room_id=event.room_id, 
-                    html=self.strings["done"].format(count=len(images))
-                )
-        except Exception as e:
-            self.logger.exception(f"Port error: {e}")
-            await mx.client.send_text(
-                room_id=event.room_id, 
-                html=self.strings["error"]
-            )
+                await mx.answer(self.strings.get("done").format(count=len(images)))
+        except Exception:
+            await mx.answer(self.strings.get("error"))
