@@ -12,13 +12,13 @@ class MatrixModule(loader.Module):
     @loader.command()
     async def catgirl(self, mx: Client, event: MessageEvent):
         """Отправляет фото кошко-девочки (E2EE Ready)."""
+
         async with aiohttp.ClientSession() as s:
             async with s.get("https://api.nekosia.cat/api/v1/images/catgirl") as r:
                 if r.status != 200: 
                     return await mx.send_text(event.room_id, self.strings["error"])
                 data = await r.json()
                 url = data["image"]["original"]["url"]
-                filename = url.split("/")[-1] or "catgirl.png"
             
             async with s.get(url) as img:
                 image_bytes = await img.read()
