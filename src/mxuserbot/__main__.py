@@ -28,6 +28,7 @@ from .core.types import InterceptHandler
 from .core.types import Config
 from .core.callback import CallBack
 from .core.loader import Loader
+from .core import utils
 from .core.security import SekaiSecurity 
 from ..database import Database, AsyncSessionWrapper  
 
@@ -168,15 +169,22 @@ class MXUserBot(Program):
     async def log_to_room(self, message: str):
         """Отправляет текстовое сообщение в комнату логов."""
         target_room = self.config["matrix"]["log_room_id"]
+        
+        if not target_room:
+            self.log.warning("Комната логов не настроена, пропускаю отправку.")
+            return
+
         try:
-            await self.client.send_image(
-                target_room,
-                url="mxc://pashahatsune.pp.ua/TYIaHOreKFTsWSG06xVzm5hA770Cm9K5",
+            # Передаем self.interface в качестве аргумента mx
+            await utils.send_image(
+                mx=self.interface, 
+                room_id=target_room,
+                url="mxc://pashahatsune.pp.ua/auQYlcMeh34P8e5i5Z0BQGYzADL278MZ",
                 caption=message,
                 file_name="photo.png",
             )
         except Exception as e:
-                self.log.error(f"Ошибка отправки лога в комнату: {e}")
+            self.log.error(f"Ошибка отправки лога в комнату: {e}")
 
 
     async def starts_with_command(
@@ -380,6 +388,7 @@ class MXUserBot(Program):
 
             self.client.crypto = OlmMachine(self.client, self.crypto_store, self.state_store)
             self.client.crypto.allow_key_requests = True
+
 
             self.client.remove_event_handler(EventType.TO_DEVICE_ENCRYPTED, self.client.crypto.handle_to_device_event)
             async def safe_handle_to_device(evt):
