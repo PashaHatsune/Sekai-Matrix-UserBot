@@ -84,11 +84,23 @@ def tds(cls):
 
     return cls
 
+class ScopedDatabase:
+    """Обертка над БД, которая жестко привязывает запросы к имени модуля."""
+    def __init__(self, raw_db, module_name: str):
+        self._raw_db = raw_db
+        self._module_name = module_name
+
+    async def get(self, key: str, default=None):
+        # owner всегда жестко задан, модуль не может передать "core"
+        return await self._raw_db.get(self._module_name, key, default)
+
+    async def set(self, key: str, value):
+        return await self._raw_db.set(self._module_name, key, value)
 
 import sys
 class Loader:
     def __init__(self, db_wrapper):
-        self.db = db_wrapper 
+        self._db = db_wrapper
         self.active_modules: typing.Dict[str, object] = {}
         self.module_path = Path(__file__).resolve().parents[2] / 'mxuserbot' / 'modules'
         self.core_path = self.module_path / "core"
@@ -115,47 +127,58 @@ class Loader:
 
 
     async def register_module(self, path: Path, bot, is_core: bool = False):
-        """Импорт модуля с учетом вложенности (core/community)"""
-        subfolder = "core" if is_core else "community"
-        module_name = f"src.mxuserbot.modules.{subfolder}.{path.stem}"
-        
-        try:
-            spec = importlib.util.spec_from_file_location(module_name, str(path))
-            if not spec or not spec.loader:
-                return
-
-            module = importlib.util.module_from_spec(spec)
-            module.__package__ = f"src.mxuserbot.modules.{subfolder}"
+            """Импорт модуля с учетом вложенности (core/community)"""
+            subfolder = "core" if is_core else "community"
+            module_name = f"src.mxuserbot.modules.{subfolder}.{path.stem}"
             
-            spec.loader.exec_module(module)
+            try:
+                spec = importlib.util.spec_from_file_location(module_name, str(path))
+                if not spec or not spec.loader:
+                    return
 
-            if not hasattr(module, 'MatrixModule'):
-                return
+                module = importlib.util.module_from_spec(spec)
+                module.__package__ = f"src.mxuserbot.modules.{subfolder}"
+                
+                spec.loader.exec_module(module)
 
-            cls = getattr(module, 'MatrixModule')
-            short_name = path.stem
-            
-            instance = cls()
-            instance._is_ready = False
-            instance._is_core = is_core
+                if not hasattr(module, 'MatrixModule'):
+                    return
 
-            if hasattr(instance, '_internal_init'):
-                await instance._internal_init(short_name, self.db, self)
+                cls = getattr(module, 'MatrixModule')
+                short_name = path.stem
+                
+                instance = cls()
+                instance._is_ready = False
+                instance._is_core = is_core
 
-            self._apply_metadata(instance, spec)
-            
-            self.active_modules[short_name] = instance
+                if hasattr(instance, '_internal_init'):
+                    # ---------------------------------------------------------
 
-            startup_task = asyncio.create_task(self._finalize_module_startup(instance, bot, short_name))
-            self._background_tasks.add(startup_task)
-            startup_task.add_done_callback(self._background_tasks.discard)
 
-            type_str = "CORE" if is_core else "COMM"
-            logger.debug(f"[{type_str}] Импортирован модуль: {short_name}")
+                    if is_core:
+                        db_to_pass = self._db 
+                        loader_to_pass = self
+                    else:
+                        db_to_pass = ScopedDatabase(self._db, short_name)
+                        loader_to_pass = self.active_modules
+                    
 
-        except Exception:
-            logger.exception(f"Ошибка при импорте модуля {path.name}")
+                    await instance._internal_init(short_name, db_to_pass, loader_to_pass, is_core=is_core)
+                    # ---------------------------------------------------------
 
+                self._apply_metadata(instance, spec)
+                
+                self.active_modules[short_name] = instance
+
+                startup_task = asyncio.create_task(self._finalize_module_startup(instance, bot, short_name))
+                self._background_tasks.add(startup_task)
+                startup_task.add_done_callback(self._background_tasks.discard)
+
+                type_str = "CORE" if is_core else "COMM"
+                logger.debug(f"[{type_str}] Импортирован модуль: {short_name}")
+
+            except Exception:
+                logger.exception(f"Ошибка при импорте модуля {path.name}")
 
     async def unload_module(self, name: str, bot) -> bool:
         if name not in self.active_modules:
@@ -193,7 +216,7 @@ class Loader:
         try:
             # Загрузка конфига из БД
             if hasattr(instance, "set_settings"):
-                saved_settings = await self.db.get(name, "__config__")
+                saved_settings = await self._db.get(name, "__config__")
                 if saved_settings:
                     instance.set_settings(saved_settings)
 
