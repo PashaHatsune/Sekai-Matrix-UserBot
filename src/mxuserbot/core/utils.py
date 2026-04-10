@@ -2,10 +2,11 @@
 # import re
 
 
+import aiohttp
 from mautrix.util.formatter import parse_html
 
 
-from mautrix.types import EventID, Format, MessageType, RelatesTo, RoomID, TextMessageEventContent
+from mautrix.types import EventID, EventType, Format, ImageInfo, MediaMessageEventContent, MessageType, RelatesTo, RoomID, TextMessageEventContent
 
 
 def get_commands(cls):
@@ -86,6 +87,175 @@ async def answer(
     if hasattr(mx, "send_message"):
         return await mx.send_message(room_id, content, **kwargs)
     return await mx.client.send_message(room_id, content, **kwargs)
+
+from mautrix.util import markdown
+from mautrix.crypto.attachments import encrypt_attachment
+
+
+async def send_image(
+    mx,
+    room_id,
+    url: str | None = None,
+    file_bytes: bytes | None = None,
+    info: ImageInfo | None = None,
+    file_name: str | None = None,
+    caption: str | None = None,
+    relates_to=None,
+    **kwargs,
+):
+    if not url and not file_bytes:
+        raise ValueError("Нужно указать либо url, либо file_bytes")
+
+    caption = (caption or "").strip() or None
+    file_name = file_name or "image.png"
+    is_enc = await mx.client.state_store.is_encrypted(room_id)
+
+    extra = {"relates_to": relates_to} if relates_to else {}
+
+    if is_enc:
+        if not file_bytes and url:
+            async with aiohttp.ClientSession() as s:
+                async with s.get(url) as r:
+                    file_bytes = await r.read()
+
+        enc_data, enc_info = encrypt_attachment(file_bytes)
+        mxc = await mx.upload_media(
+            enc_data,
+            mime_type="application/octet-stream",
+            filename=file_name,
+        )
+        enc_info.url = mxc
+
+        content_data = {
+            "msgtype": MessageType.IMAGE,
+            "body": caption or file_name,
+            "info": info,
+            "file": enc_info,
+            **extra,
+        }
+        if caption:
+            content_data["format"] = "org.matrix.custom.html"
+            content_data["formatted_body"] = markdown.render(caption)
+
+    else:
+        if file_bytes and not url:
+            mxc = await mx.upload_media(
+                file_bytes,
+                mime_type="image/png",
+                filename=file_name,
+            )
+        else:
+            mxc = url
+
+        content_data = {
+            "msgtype": MessageType.IMAGE,
+            "body": caption or file_name,
+            "info": info,
+            "url": mxc,
+            "filename": file_name,
+            **extra,
+        }
+        if caption:
+            content_data["format"] = "org.matrix.custom.html"
+            content_data["formatted_body"] = markdown.render(caption)
+
+    content = MediaMessageEventContent(**content_data)
+
+
+    return await mx.client.send_message_event(
+        room_id,
+        EventType.ROOM_MESSAGE,
+        content,
+        **kwargs,
+    )
+
+    
+
+
+
+from mautrix.types import TextMessageEventContent
+
+from mautrix.api import Method
+from typing import Optional
+
+
+RPC_NAMESPACE = "com.ip-logger.msc4320.rpc"
+
+async def set_rpc_media(
+    mx,
+    artist: str,
+    album: str,
+    track: str,
+    length: Optional[int] = None,
+    complete: Optional[int] = None,
+    cover_art: Optional[str] = None,
+    player: Optional[str] = None,
+    streaming_link: Optional[str] = None
+):
+    """
+    Установить статус 'Слушает' (m.rpc.media) со всеми аргументами MSC4320.
+    :param artist: Исполнитель (обязательно)
+    :param album: Альбом (обязательно)
+    :param track: Название трека (обязательно)
+    :param length: Общая длина трека в секундах
+    :param complete: Сколько секунд уже прослушано
+    :param cover_art: Ссылка MXC на обложку альбома
+    :param player: Название плеера (например, Spotify)
+    :param streaming_link: Прямая ссылка на стриминг
+    """
+    data = {
+        "type": f"{RPC_NAMESPACE}.media",
+        "artist": artist,
+        "album": album,
+        "track": track
+    }
+
+    if length is not None or complete is not None:
+        data["progress"] = {}
+        if length is not None: data["progress"]["length"] = length
+        if complete is not None: data["progress"]["complete"] = complete
+    
+    if cover_art: data["cover_art"] = cover_art
+    if player: data["player"] = player
+    if streaming_link: data["streaming_link"] = streaming_link
+
+    endpoint = f"_matrix/client/v3/profile/{mx.client.mxid}/{RPC_NAMESPACE}"
+    return await mx.client.api.request(Method.PUT, endpoint, content={RPC_NAMESPACE: data})
+
+
+async def set_rpc_activity(
+    mx,
+    name: str,
+    details: Optional[str] = None,
+    image: Optional[str] = None
+):
+    """
+    Установить статус 'Играет/Активность' (m.rpc.activity).
+    :param name: Название активности/игры (обязательно)
+    :param details: Детали (карта, уровень, текущее состояние)
+    :param image: Ссылка MXC на иконку активности
+    """
+    data = {
+        "type": f"{RPC_NAMESPACE}.activity",
+        "name": name
+    }
+
+    if details: data["details"] = details
+    if image: data["image"] = image
+
+    endpoint = f"_matrix/client/v3/profile/{mx.client.mxid}/{RPC_NAMESPACE}"
+    return await mx.client.api.request(Method.PUT, endpoint, content={RPC_NAMESPACE: data})
+
+
+async def clear_rpc(mx):
+    """
+    Удалить Rich Presence статус согласно спецификации (DELETE или пустой PUT).
+    """
+    endpoint = f"_matrix/client/v3/profile/{mx.client.mxid}/{RPC_NAMESPACE}"
+    return await mx.client.api.request(Method.DELETE, endpoint)
+
+
+
 
 
 
