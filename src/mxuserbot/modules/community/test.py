@@ -4,6 +4,8 @@ from ...core import loader
 from ...core import utils
 
 
+from mautrix.client import Client
+
 import asyncio
 
 @loader.tds
@@ -15,7 +17,7 @@ class MatrixModule(loader.Module):
     }
 
     @loader.command()
-    async def test(self, mx, event):
+    async def test(self, mx: Client, event: MessageEvent):
         """Простейшая команда"""
         # Отредактирует сообщение .test
         await mx.answer("🎶 <b>Играет:</b> <code>Ghost of a smile</code>")
@@ -24,3 +26,9 @@ class MatrixModule(loader.Module):
         
         # Отредактирует это же сообщение еще раз
         await mx.answer("Текст изменился автоматически!")
+
+        await mx.client.react(
+            room_id=event.room_id,
+            event_id=event.event_id,
+            key="🤩"
+        )
