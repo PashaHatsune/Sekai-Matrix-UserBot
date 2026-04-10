@@ -25,7 +25,6 @@ from mautrix.crypto import OlmMachine
 
 
 from .core.types import InterceptHandler
-from .core.types import UserBotClient
 from .core.types import Config
 from .core.callback import CallBack
 from .core.loader import Loader
@@ -45,7 +44,7 @@ class MXBotInterface:
     _current_event = contextvars.ContextVar("current_event")
 
     @property
-    def client(self) -> 'UserBotClient':
+    def client(self) -> 'Client':
         return self._bot.client
     
 
@@ -365,7 +364,7 @@ class MXUserBot(Program):
             self.state_store = PgCryptoStateStore(self.crypto_db)
             self.crypto_store = PgCryptoStore(conf["username"], "sekai_secret_pickle_key", self.crypto_db)
 
-            self.client = UserBotClient(
+            self.client = Client(
                 api=HTTPAPI(base_url=conf["base_url"]),
                 state_store=self.state_store,
                 sync_store=self.crypto_store
