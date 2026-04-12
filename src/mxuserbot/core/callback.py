@@ -53,7 +53,7 @@ class CallBack:
         target_user = evt.state_key 
 
         for mod in self.mx.active_modules.values():
-            if mod.enabled and getattr(mod, "_is_ready", False):
+            # if mod.enabled and getattr(mod, "_is_ready", False):
                 try:
                     if hasattr(mod, "_matrix_member"):
                         await mod._matrix_member(self.mx, evt)
@@ -89,8 +89,9 @@ class CallBack:
 
         if not await self.mx.starts_with_command(real_body):
             for mod in self.mx.active_modules.values():
-                if mod.enabled and getattr(mod, "_is_ready", False):
+                # if mod.enabled and getattr(mod, "_is_ready", False):
                     try:
+                        print(1)
                         await mod._matrix_message(self.mx.interface, evt)
                     except Exception:
                         logger.exception(f"Error in watcher in {mod.name}")
@@ -115,7 +116,7 @@ class CallBack:
                     continue
                 
                 if cmd_name in mod.commands:
-                    if not getattr(mod, "_is_ready", False):
+                    if not getattr(mod, "_is_ready", True):
                         return 
                         
                     func = mod.commands[cmd_name]
