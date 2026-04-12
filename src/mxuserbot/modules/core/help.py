@@ -39,7 +39,6 @@ class HelperModule(loader.Module):
         prefix = await mx.get_prefix()
 
         if not args:
-            # Берем данные из Meta текущего модуля
             msg = self.strings.get("header").format(
                 name=self.Meta.name,
                 desc=self.Meta._cls_doc
@@ -52,7 +51,6 @@ class HelperModule(loader.Module):
                 else:
                     cmds = self.strings.get("no_cmds")
 
-                # Берем данные из Meta перебираемых модулей
                 msg += self.strings.get("module_item").format(
                     name=mod.Meta.name,
                     desc=mod.Meta._cls_doc,
