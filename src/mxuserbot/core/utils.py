@@ -286,21 +286,73 @@ def get_args(message):
 
 
     return list(filter(lambda x: len(x) > 0, split))
-
+from mautrix.types import EncryptedEvent
 
 import os
-def get_args_raw(message) -> str:
+
+
+from mautrix.types import EncryptedEvent
+
+async def get_args_raw(mx, event) -> str:
     """
-    Get the parameters to the command as a raw string (not split)
-    :param message: Message or string to get arguments from
-    :return: Raw string of arguments
+    1. Если в команде есть текст помимо первого аргумента -> возвращает аргументы (игнорирует реплай).
+    2. Если в команде только 1 аргумент (или пусто) и есть реплай -> склеивает аргумент и текст реплая.
+    3. Иначе -> возвращает аргументы команды.
     """
-    if not (message := getattr(message, "message", message)):
-        return False
+    cmd_text = ""
+    if isinstance(event, str):
+        cmd_text = event
+    elif hasattr(event, "content") and hasattr(event.content, "body"):
+        cmd_text = event.content.body
+    elif hasattr(event, "message"):
+        cmd_text = event.message
 
-    return args[1] if len(args := message.split(maxsplit=1)) > 1 else ""
+    cmd_args = ""
+    if cmd_text:
+        cmd_text = cmd_text.strip()
+        parts = cmd_text.split(maxsplit=1)
+        cmd_args = parts[1].strip() if len(parts) > 1 else ""
 
+    args_words_count = len(cmd_args.split())
 
+    if args_words_count > 1:
+        return cmd_args
+
+    try:
+        relates = (
+            getattr(event.content, "relates_to", None)
+            or getattr(event.content, "_relates_to", None)
+        )
+
+        if relates and getattr(relates, "in_reply_to", None):
+            reply_id = relates.in_reply_to.event_id
+
+            replied_event = await mx.client.get_event(
+                room_id=event.room_id,
+                event_id=reply_id
+            )
+
+            if isinstance(replied_event, EncryptedEvent):
+                try:
+                    replied_event = await mx.client.crypto.decrypt_megolm_event(
+                        replied_event
+                    )
+                except Exception:
+                    pass
+
+            reply_text = getattr(replied_event.content, "body", None)
+            if reply_text:
+                reply_text = reply_text.strip()
+                
+                if cmd_args:
+                    return f"{cmd_args} {reply_text}"
+                
+                return reply_text
+
+    except Exception:
+        pass
+
+    return cmd_args
 
 
 def escape_html(text: str, /) -> str:  # sourcery skip
