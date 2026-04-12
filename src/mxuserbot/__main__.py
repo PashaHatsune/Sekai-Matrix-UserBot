@@ -340,11 +340,10 @@ class MXUserBot(Program):
 
     async def get_prefix(self) -> str:
         """Безопасный геттер для получения основного префикса."""
-        if not hasattr(self, "_prefix_cache") or not self._prefix_cache:
-            db_result = await self._db.get("core", "prefix")
-            self._prefix_cache = db_result or ["."]
+
+        db_result = await self._db.get("core", "prefix")
             
-        return self._prefix_cache[0]
+        return db_result[0]
 
     async def setup_userbot(
         self
