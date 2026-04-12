@@ -141,3 +141,5 @@ voice_msg.p
 
 crypto.*
 lastfm_config.*
+
+tg_session_*
