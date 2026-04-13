@@ -86,7 +86,7 @@ class MXUserBot(Program):
             name='sekai-user-bot',
             description="Sekai Userbot",
             command="-",
-            version="0.5 | ALPHA",
+            version="0.6 | ALPHA",
             config_class=Config
         )
         self.client: Optional[Client] = None
