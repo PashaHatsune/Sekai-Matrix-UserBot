@@ -38,6 +38,16 @@ Hemppa подошёл, но реализация «всё в одном файл
 
 ## Установка
 
+# Docker
+```bash
+git clone https://github.com/PashaHatsune/MxUserbot.git
+cd MxUserbot
+
+docker build -t mxuserbot .
+docker run -it mxuserbot
+```
+
+### Ручная установка
 ```bash
 git clone https://github.com/PashaHatsune/MxUserbot.git
 cd MxUserbot
