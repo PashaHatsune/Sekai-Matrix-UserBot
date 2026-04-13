@@ -233,6 +233,19 @@ class Loader:
                         return
 
             cls.Meta = module_meta
+
+
+            if is_core:
+                def secure_setattr(obj, name, value):
+                    for frame_info in inspect.stack():
+                        if "modules/community" in frame_info.filename.replace("\\", "/"):
+                            logger.critical(f"[SECURITY BLOCK] Модуль из community пытался подменить память в Core: {name}")
+                            raise PermissionError("Security: Core modules are frozen in memory and cannot be modified!")
+                    # Если вызывает ядро - разрешаем
+                    object.__setattr__(obj, name, value)
+                
+                # Применяем защиту к классу
+                cls.__setattr__ = secure_setattr
             
             instance = cls()
             instance._is_ready = False
