@@ -1,311 +1,180 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>MXUserbot | Session Init</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
-<style>
-:root {
-    --bg: #1c1c27; 
-    --accent: #ffb2ef; 
-    --glass: rgba(255, 255, 255, 0.03);
-    --border: rgba(255, 178, 239, 0.2);
-    --error: #ff6b6b;
-    --success: #6bff9d;
-}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>MXUserbot | Session Init</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .card-active { display: block !important; animation: fadeIn 0.3s ease-out forwards; }
+        @keyframes fadeIn { 
+            from { opacity: 0; transform: translateY(10px); } 
+            to { opacity: 1; transform: translateY(0); } 
+        }
+    </style>
+</head>
+<body class="bg-[#0b0b0f] text-[#ececed] min-h-screen flex items-center justify-center p-5 overflow-hidden">
 
-* { box-sizing: border-box; margin: 0; padding: 0; }
+    <div class="w-full max-w-[580px] z-10">
+        <div id="scr-welcome" class="card bg-[#16161a] border border-[#2d2d35] rounded-xl p-10 hidden text-center shadow-2xl card-active">
+            <h1 class="text-2xl font-semibold mb-3 tracking-tight text-white">MXUserbot</h1>
+            <p class="text-[#94949e] text-sm mb-6">Expand the capabilities of your Matrix account.</p>
+            
+            <div class="border-l-2 border-[#ffb2ef] pl-5 pr-3 py-3 mb-6 bg-[#ffb2ef]/[0.04] text-left">
+                <p class="text-sm leading-relaxed text-[#94949e]">
+                    <b class="text-[#ececed]">A userbot is a bot running through your own account.</b><br><br>
+                    It acts as <b>you</b>, with no limits other than the modules you install. Use it for anything: from <b>flexing on friends</b> to <b>automating your tasks</b>.<br><br>
+                    Your profile, your modules, your rules.
+                </p>
+            </div>
 
-body { 
-    background: var(--bg); 
-    color: #fff; 
-    font-family: 'Inter', sans-serif; 
-    min-height: 100vh; 
-    /* scroll вместо auto гарантирует, что ширина экрана никогда не будет прыгать */
-    overflow-y: scroll; 
-    overflow-x: hidden;
-    display: flex; 
-    flex-direction: column;
-}
+            <ul class="space-y-2.5 mb-8">
+                <li class="text-[#94949e] text-sm flex items-start text-left before:text-[#ffb2ef] before:mr-2.5 before:font-bold">
+                    🔐 | End-to-end encryption [E2EE] by default / SAS
+                </li>
+                <li class="text-[#94949e] text-sm flex items-start text-left before:text-[#ffb2ef] before:mr-2.5 before:font-bold">
+                    📦 | Modular architecture for custom scripts
+                </li>
+                <li class="text-[#94949e] text-sm flex items-start text-left before:text-[#ffb2ef] before:mr-2.5 before:font-bold">
+                    🌐 | Support for third-party repositories
+                </li>
+            </ul>
 
-body::-webkit-scrollbar { width: 6px; }
-body::-webkit-scrollbar-track { background: var(--bg); }
-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
-
-#star-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; }
-
-.container {
-    width: 100%;
-    max-width: 550px;
-    padding: 20px;
-    z-index: 10;
-    margin: auto;
-}
-
-.glass-card {
-    background: var(--glass);
-    backdrop-filter: blur(25px);
-    -webkit-backdrop-filter: blur(25px);
-    border: 1px solid var(--border);
-    border-radius: 32px;
-    padding: 45px;
-    box-shadow: 0 25px 50px rgba(0,0,0,0.4);
-    text-align: center;
-    width: 100%;
-    display: none;
-    opacity: 0;
-    position: relative; 
-}
-
-/* Адаптация для маленьких экранов */
-@media (max-width: 480px) {
-    .glass-card { padding: 30px 20px; border-radius: 24px; }
-    h1 { font-size: 24px; }
-}
-
-.card-in { display: block; animation: slideIn 0.5s cubic-bezier(0.23, 1, 0.32, 1) forwards; }
-.card-out { display: block; animation: slideOut 0.4s cubic-bezier(0.23, 1, 0.32, 1) forwards; }
-
-@keyframes slideIn {
-    from { opacity: 0; transform: translateY(30px) scale(0.98); }
-    to { opacity: 1; transform: translateY(0) scale(1); }
-}
-@keyframes slideOut {
-    from { opacity: 1; transform: translateY(0) scale(1); }
-    to { opacity: 0; transform: translateY(-30px) scale(1.02); }
-}
-
-h1 { font-weight: 600; font-size: 28px; color: var(--accent); margin-bottom: 12px; letter-spacing: -0.5px; }
-p { color: rgba(255,255,255,0.6); line-height: 1.6; margin-bottom: 25px; font-size: 14px; }
-
-.quote-box {
-    margin-bottom: 25px;
-    padding: 15px 20px;
-    background: rgba(255, 178, 239, 0.03);
-    border-left: 3px solid var(--accent);
-    text-align: left;
-    border-radius: 4px 16px 16px 4px;
-}
-.quote-text {
-    font-style: italic;
-    font-size: 13px;
-    color: rgba(255, 255, 255, 0.5);
-    line-height: 1.5;
-}
-
-.features { display: grid; gap: 12px; margin-bottom: 25px; text-align: left; }
-.f-item { background: rgba(255,255,255,0.02); padding: 14px 18px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.05); }
-.f-item h3 { font-size: 13px; color: var(--accent); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
-.f-item span { font-size: 12px; color: rgba(255,255,255,0.4); }
-
-.warning-highlight {
-    background: rgba(255, 107, 107, 0.08);
-    border: 1px dashed var(--error);
-    padding: 20px;
-    border-radius: 16px;
-    margin-bottom: 25px;
-    text-align: left;
-}
-
-input { 
-    width: 100%; 
-    padding: 16px 20px; 
-    background: rgba(0,0,0,0.2); 
-    border: 1px solid var(--border); 
-    border-radius: 14px; 
-    color: #fff; 
-    font-size: 15px; 
-    outline: none; 
-    transition: 0.3s;
-    margin-bottom: 15px;
-}
-input:focus { border-color: var(--accent); background: rgba(255,178,239,0.05); }
-
-button { 
-    width: 100%; 
-    padding: 18px; 
-    background: var(--accent); 
-    color: var(--bg); 
-    border: none; 
-    border-radius: 14px; 
-    font-weight: 600; 
-    font-size: 15px; 
-    cursor: pointer; 
-    transition: 0.3s cubic-bezier(0.2, 0, 0, 1); 
-}
-button:hover { transform: scale(1.02); background: #fff; box-shadow: 0 10px 25px rgba(255,178,239,0.3); }
-
-button.secondary { background: rgba(255,255,255,0.05); color: #fff; margin-top: 12px; }
-button.secondary:hover { background: rgba(255,255,255,0.15); }
-button.danger { background: rgba(255, 107, 107, 0.15); color: var(--error); border: 1px solid var(--error); margin-top: 12px; }
-button.danger:hover { background: var(--error); color: #fff; box-shadow: 0 10px 25px rgba(255, 107, 107, 0.3); }
-
-.res-links { margin-top: 25px; font-size: 13px; color: rgba(255,255,255,0.3); }
-.res-links a { color: rgba(255,255,255,0.5); text-decoration: none; transition: 0.3s; margin: 0 8px; }
-.res-links a:hover { color: var(--accent); }
-
-.loader {
-    width: 50px; height: 50px;
-    border: 3px solid rgba(255,178,239,0.1); border-top: 3px solid var(--accent);
-    border-radius: 50%; margin: 0 auto 25px;
-    animation: spin 0.8s linear infinite;
-}
-@keyframes spin { to { transform: rotate(360deg); } }
-
-.icon { font-size: 54px; margin-bottom: 20px; display: block; filter: drop-shadow(0 0 10px currentColor); }
-</style></head><body>
-
-<canvas id="star-canvas"></canvas>
-
-<div class="container" id="main-container">
-    <!-- 1. WELCOME -->
-    <div id="scr-welcome" class="glass-card card-in">
-        <h1>MXUserbot</h1>
-        <p>Expand the capabilities of your Matrix account.</p>
-        <div class="quote-box">
-            <p class="quote-text"><b>A userbot is a bot running through your own account.</b><br><br>It acts as <b>you</b>, with no limits other than the modules you install. Use it for anything: from <b>flexing on friends</b> to <b>automating your tasks</b>. <br><br>Your profile, your modules, your rules.</p>
-        </div>
-        <div class="features">
-            <div class="f-item"><h3>Encryption</h3><span>E2EE is already enabled out of the box.</span></div>
-            <div class="f-item"><h3>Modularity</h3><span>Install or write your own modules[it's easy to code your own!].</span></div>
-            <div class="f-item"><h3><b>Repositories</b></h3><span>Easily connect third-party module repositories and get new features instantly.</span></div>
-            <div class="f-item"><h3><b>UI/UX for Humans</b></h3><span>Intuitive and user-friendly interface for effortless userbot management.</span></div>
-        </div>
-        <button onclick="nav('scr-welcome', 'scr-warning')">Get Started</button>
-    </div>
-
-    <!-- 2. WARNING / CONSENT -->
-    <div id="scr-warning" class="glass-card">
-        <h1 style="color: var(--error);">⚠️ | Disclaimer | ⚠️</h1>
-        <p>Please review our terms of use before proceeding.</p>
-        
-        <div class="warning-highlight">
-            <h3 style="color: var(--error); font-size: 12px; text-transform: uppercase; margin-bottom: 8px;">Software Notice:</h3>
-            <p style="font-size: 13px; color: rgba(255,107,107,0.8); margin-bottom: 0; line-height: 1.5;">
-                        This software is provided <b>"as is"</b>, without warranty of any kind, express or implied. By using this userbot, you acknowledge that:
-                        <br><br>
-                        • <b>Full Responsibility:</b> You are solely responsible for your actions and any consequences resulting from the use of this software.
-                        <br><br>
-                        • <b>No Liability:</b> The developer shall not be held liable for any damages, including but not limited to account bans, data loss, or legal issues.
-                        <br><br>
-                        • <b>Strict Prohibition:</b> Use of this bot for fraudulent activities, spam, or any actions that violate terms of service or local laws is strictly prohibited. The developer does not endorse or take responsibility for such conduct.
-                    </p>
+            <button onclick="nav('scr-welcome', 'scr-warning')" class="w-full p-3.5 bg-[#ffb2ef] text-black rounded-lg text-sm font-semibold hover:opacity-90 active:scale-[0.98] transition-all">
+                Get Started
+            </button>
         </div>
 
+        <div id="scr-warning" class="card bg-[#16161a] border border-[#2d2d35] rounded-xl p-10 hidden text-center shadow-2xl">
+            <h1 class="text-2xl font-semibold mb-3 tracking-tight text-[#f87171]">⚠️ | WARNING | ⚠️</h1>
+            <p class="text-[#94949e] text-sm mb-6">Please review the terms of use.</p>
+            
+            <div class="border-l-2 border-[#f87171] pl-5 pr-3 py-5 mb-6 bg-[#f87171]/[0.02] text-left">
+                <p class="text-sm leading-relaxed text-[#94949e]">
+                    This software is provided <b class="text-[#ececed]">"as is"</b>, without warranty of any kind, express or implied. By using this userbot, you acknowledge that:
+                    <br><br>
+                    • <b class="text-[#ececed]">Full Responsibility:</b> You are solely responsible for your actions and any consequences resulting from the use of this software.
+                    <br><br>
+                    • <b class="text-[#ececed]">No Liability:</b> The developer shall not be held liable for any damages, including but not limited to account bans, data loss, or legal issues.
+                    <br><br>
+                    • <b class="text-[#ececed]">Strict Prohibition:</b> Use of this bot for fraudulent activities, spam, or any actions that violate terms of service or local laws is strictly prohibited.
+                </p>
+            </div>
 
-        
-        
-        <button onclick="nav('scr-warning', 'scr-login')">I Accept & Continue</button>
-        <button class="danger" onclick="terminateSession()">Decline</button>
-    </div>
-
-    <!-- 3. LOGIN -->
-    <div id="scr-login" class="glass-card">
-        <h1>Authorize</h1>
-        <p>Connect your Matrix account to create a secure session.</p>
-        <input id="mxid" type="text" placeholder="@user:matrix.org" spellcheck="false">
-        <input id="pass" type="password" placeholder="Account Password">
-        <button id="btn-login">Create Session</button>
-        <button class="secondary" onclick="nav('scr-login', 'scr-warning')">Back</button>
-    </div>
-
-    <!-- 4. LOADING -->
-    <div id="scr-loading" class="glass-card">
-        <div class="loader"></div>
-        <h1>Initializing</h1>
-        <p>Establishing tunnel and syncing cryptographic stores...</p>
-    </div>
-
-    <!-- 5. RESULT -->
-    <div id="scr-result" class="glass-card">
-        <span id="res-icon" class="icon"></span>
-        <h1 id="res-title">Status</h1>
-        <p id="res-desc"></p>
-        <div id="res-actions"></div>
-    </div>
-</div>
-
-<script>
-const canvas = document.getElementById('star-canvas');
-const ctx = canvas.getContext('2d');
-let stars =[];
-
-function initStars() {
-    canvas.width = window.innerWidth; canvas.height = window.innerHeight;
-    stars =[];
-    for(let i=0; i<180; i++) stars.push({x:Math.random()*canvas.width, y:Math.random()*canvas.height, size:Math.random()*1.8, speed:Math.random()*0.4+0.1, o:Math.random()});
-}
-function animateStars() {
-    ctx.clearRect(0,0,canvas.width,canvas.height); ctx.fillStyle="#fff";
-    stars.forEach(s=>{ctx.globalAlpha=s.o; ctx.beginPath(); ctx.arc(s.x,s.y,s.size,0,Math.PI*2); ctx.fill(); s.x-=s.speed; if(s.x<0)s.x=canvas.width;});
-    requestAnimationFrame(animateStars);
-}
-window.onresize=initStars; initStars(); animateStars();
-
-function nav(fromId, toId) {
-    const from = document.getElementById(fromId);
-    const to = document.getElementById(toId);
-    
-    window.scrollTo({top: 0, behavior: 'smooth'});
-
-    from.classList.remove('card-in'); 
-    from.classList.add('card-out');
-    
-    setTimeout(() => {
-        from.style.display = 'none'; 
-        from.classList.remove('card-out');
-        to.style.display = 'block'; 
-        to.classList.add('card-in');
-    }, 400);
-}
-
-function terminateSession() {
-    const container = document.getElementById('main-container');
-    container.innerHTML = `
-        <div class="glass-card card-in" style="border-color: var(--error);">
-            <h1 style="color: var(--error);">Session Terminated</h1>
-            <p>You have declined the terms. Access to MXUserbot has been restricted. You may now close this tab.</p>
+            <div class="flex flex-col gap-3">
+                <button onclick="nav('scr-warning', 'scr-login')" class="w-full p-3.5 bg-[#ffb2ef] text-black rounded-lg text-sm font-semibold hover:opacity-90 active:scale-[0.98] transition-all">
+                    Accept and Continue
+                </button>
+                <button onclick="terminate()" class="w-full p-3.5 bg-transparent text-[#94949e] border border-[#2d2d35] rounded-lg text-sm font-semibold hover:text-white hover:border-[#444] transition-all">
+                    Decline
+                </button>
+            </div>
         </div>
-    `;
-}
 
-const btn = document.getElementById('btn-login');
-btn.onclick = async () => {
-    const mxid = document.getElementById('mxid').value.trim();
-    const pass = document.getElementById('pass').value;
-    if(!/^@[\w\.\-]+:[\w\.\-]+\.[a-zA-Z]{2,}$/.test(mxid)) { alert("Invalid Matrix ID format."); return; }
+        <form id="scr-login" class="card bg-[#16161a] border border-[#2d2d35] rounded-xl p-10 hidden text-center shadow-2xl">
+            <h1 class="text-2xl font-semibold mb-3 tracking-tight text-white">Authorization</h1>
+            <p class="text-[#94949e] text-sm mb-6">Connect your account to initialize the session.</p>
+            
+            <div class="space-y-5 mb-6 text-left">
+                <div>
+                    <label class="block text-[11px] font-semibold text-[#94949e] mb-2 uppercase tracking-wider">Matrix ID</label>
+                    <input id="mxid" type="text" placeholder="@user:matrix.org" required class="w-full p-3.5 bg-black border border-[#2d2d35] rounded-lg text-white text-sm outline-none focus:border-[#ffb2ef] transition-all">
+                </div>
+                <div>
+                    <label class="block text-[11px] font-semibold text-[#94949e] mb-2 uppercase tracking-wider">Password</label>
+                    <input id="pass" type="password" placeholder="••••••••" required class="w-full p-3.5 bg-black border border-[#2d2d35] rounded-lg text-white text-sm outline-none focus:border-[#ffb2ef] transition-all">
+                </div>
+            </div>
 
-    nav('scr-login', 'scr-loading');
-    const start = Date.now();
-    let success = false, errText = "";
+            <div class="flex flex-col gap-3">
+                <button type="submit" class="w-full p-3.5 bg-[#ffb2ef] text-black rounded-lg text-sm font-semibold hover:opacity-90 active:scale-[0.98] transition-all">
+                    Sign In
+                </button>
+                <button type="button" onclick="nav('scr-login', 'scr-welcome')" class="w-full p-3.5 bg-transparent text-[#94949e] border border-[#2d2d35] rounded-lg text-sm font-semibold hover:text-white hover:border-[#444] transition-all text-center">
+                    Cancel
+                </button>
+            </div>
+        </form>
 
-    try {
-        const r = await fetch('/api/auth', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({mxid, password: pass})
-        });
-        const d = await r.json();
-        if(r.ok) success = true;
-        else errText = d.detail || "Authentication failed";
-    } catch { errText = "Could not connect to the API server"; }
+        <div id="scr-loading" class="card bg-[#16161a] border border-[#2d2d35] rounded-xl p-10 hidden text-center shadow-2xl">
+            <div class="w-8 h-8 border-2 border-white/5 border-t-[#ffb2ef] rounded-full animate-spin mx-auto mb-5"></div>
+            <h1 class="text-2xl font-semibold mb-3 text-white">Initializing</h1>
+            <p class="text-[#94949e] text-sm">Establishing tunnel and syncing keys...</p>
+        </div>
 
-    const wait = Math.max(0, 2500 - (Date.now() - start));
-    setTimeout(() => finish(success, errText), wait);
-};
+        <div id="scr-result" class="card bg-[#16161a] border border-[#2d2d35] rounded-xl p-10 hidden text-center shadow-2xl">
+            <h1 id="res-title" class="text-2xl font-semibold mb-3 text-white">Status</h1>
+            <p id="res-desc" class="text-[#94949e] text-sm mb-6"></p>
+            <div id="res-actions"></div>
+        </div>
+    </div>
 
-function finish(isOk, msg) {
-    const icon = document.getElementById('res-icon'), title = document.getElementById('res-title'), 
-          desc = document.getElementById('res-desc'), acts = document.getElementById('res-actions');
+    <script>
+        const nav = (from, to) => {
+            document.getElementById(from).classList.remove('card-active');
+            setTimeout(() => {
+                document.getElementById(from).style.display = 'none';
+                const t = document.getElementById(to);
+                t.style.display = 'block';
+                setTimeout(() => t.classList.add('card-active'), 10);
+            }, 50);
+        };
 
-    if(isOk) {
-        icon.innerText = "✦"; icon.style.color = "var(--success)";
-        title.innerText = "Success!";
-        desc.innerText = "Your userbot session has been initialized. The system is now operational.";
-        acts.innerHTML = `<button onclick="window.open('https://docs.example.com', '_blank')">Read Documentation</button>
-            <div class="res-links"><a href="#">space</a> | <a href="https://github.com">github</a> | <a href="#">donate</a></div>`;
-    } else {
-        icon.innerText = "✧"; icon.style.color = "var(--error)";
-        title.innerText = "Failure";
-        desc.innerText = msg;
-        acts.innerHTML = `<button onclick="nav('scr-result', 'scr-login')">Try Again</button>`;
-    }
-    nav('scr-loading', 'scr-result');
-}
-</script></body></html>
+        const terminate = () => {
+            document.body.innerHTML = `
+                <div class="w-full max-w-[580px] bg-[#16161a] border border-[#f87171] rounded-xl p-10 text-center shadow-2xl animate-[fadeIn_0.3s_ease-out]">
+                    <h1 class="text-2xl font-semibold mb-3 text-[#f87171]">Access Denied</h1>
+                    <p class="text-[#94949e] text-sm">Session terminated.</p>
+                </div>`;
+        };
+
+        document.getElementById('scr-login').onsubmit = async (e) => {
+            e.preventDefault();
+            const u = document.getElementById('mxid').value.trim();
+            const p = document.getElementById('pass').value;
+            if(!u.includes(':')) return alert('Check Matrix ID format');
+
+            nav('scr-login', 'scr-loading');
+            const start = Date.now();
+            let ok = false, msg = "";
+
+            try {
+                const r = await fetch('/api/auth', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({mxid: u, password: p})
+                });
+                const d = await r.json();
+                ok = r.ok; msg = d.detail || "";
+            } catch { msg = "Server unreachable"; }
+
+            setTimeout(() => {
+                const t = document.getElementById('res-title'), d = document.getElementById('res-desc'), a = document.getElementById('res-actions');
+                if(ok) {
+                    t.innerText = "Success";
+                    d.innerText = "Session initialized. The userbot is now active.";
+                    a.innerHTML = `
+                        <button onclick="window.open('https://docs.example.com')" class="w-full p-3.5 bg-[#ffb2ef] text-black rounded-lg text-sm font-semibold hover:opacity-90 active:scale-[0.98] transition-all">
+                            Documentation
+                        </button>
+                        <div class="mt-8 pt-5 border-t border-[#2d2d35] flex justify-center gap-5 text-xs">
+                            <a href="#" class="text-[#ffb2ef] hover:underline">space</a>
+                            <a href="#" class="text-[#ffb2ef] hover:underline">github</a>
+                            <a href="#" class="text-[#ffb2ef] hover:underline">donate</a>
+                        </div>`;
+                } else {
+                    t.innerText = "Failed"; t.classList.add('text-[#f87171]');
+                    d.innerText = msg || "Auth failed";
+                    a.innerHTML = `
+                        <button onclick="nav('scr-result', 'scr-login')" class="w-full p-3.5 bg-[#ffb2ef] text-black rounded-lg text-sm font-semibold hover:opacity-90 active:scale-[0.98] transition-all">
+                            Try Again
+                        </button>`;
+                }
+                nav('scr-loading', 'scr-result');
+            }, Math.max(0, 1500 - (Date.now() - start)));
+        };
+    </script>
+</body>
+</html>
