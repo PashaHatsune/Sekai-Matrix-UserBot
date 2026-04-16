@@ -58,10 +58,19 @@ class ModuleConfig:
         """Вызывается при инициализации модуля."""
         for key, cfg in self._schema.items():
             db_val = await self._getter(key, cfg.default)
-            self._cache[key] = cfg._convert(db_val)
+            converted = cfg._convert(db_val)
+
+            if converted is not None:
+                self._cache[key] = converted
+
 
     def __getitem__(self, key):
         return self._cache.get(key)
+
+    def get(self, key: str, default: Any = None) -> Any:
+        """Standard dict-like get method."""
+        return self._cache.get(key, default)
+
 
     def set(self, key: str, raw_value: Any) -> bool:
         """
