@@ -37,17 +37,13 @@ If you have ideas or code — send them over, I will review everything.
 ```bash
 git clone https://github.com/PashaHatsune/MxUserbot.git
 cd MxUserbot
-
-docker build -t mxuserbot .
-docker run -it mxuserbot
+docker-compose up -d --build
 ```
 
 ### Manual Installation
 ```bash
 git clone https://github.com/PashaHatsune/MxUserbot.git
 cd MxUserbot
-
-# Sync and run
 uv sync
 uv run -m src.mxuserbot
 ```
