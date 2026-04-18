@@ -3,151 +3,302 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>MXUserbot | Session Init</title>
+    <title data-i18n="page_title">MXUserbot | Session Init</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Inter', sans-serif; }
-        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #06080c;
+            color: #ececec;
+            min-height: 100vh;
+            overflow: hidden;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 1rem;
+        }
+        /* Canvas starfield */
+        #cosmos { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; }
         .card { display: none; }
-        
-        .card-active { 
-            display: block; 
-            animation: fadeIn 0.25s ease-out forwards; 
-        }
-        
-        .card-exit { 
-            display: block; 
-            animation: fadeOut 0.2s ease-in forwards; 
-        }
-
-        @keyframes fadeIn { 
-            from { opacity: 0; transform: translateY(15px); } 
-            to { opacity: 1; transform: translateY(0); } 
-        }
-        
-        @keyframes fadeOut { 
-            from { opacity: 1; transform: translateY(0); } 
-            to { opacity: 0; transform: translateY(-15px); } 
-        }
+        .card-active { display: block; animation: fadeIn 0.4s ease-out forwards; }
+        .card-exit { display: block; animation: fadeOut 0.3s ease-in forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes fadeOut { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(-20px); } }
+        .lang-btn { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); color: #b0b0b0; padding: 6px 14px; border-radius: 20px; font-size: 12px; cursor: pointer; transition: all 0.25s; backdrop-filter: blur(4px); }
+        .lang-btn:hover { border-color: rgba(255,178,239,0.4); color: #fff; }
+        .lang-btn.active { background: linear-gradient(135deg, #ff2e63, #ff7eb9); border-color: transparent; color: #fff; font-weight: 600; box-shadow: 0 0 12px rgba(255,46,99,0.4); }
+        .input-field { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); color: #ddd; transition: all 0.3s; }
+        .input-field:focus { border-color: rgba(255,178,239,0.6); outline: none; background: rgba(255,255,255,0.07); box-shadow: 0 0 16px rgba(255,46,99,0.2); }
+        .btn-primary { background: linear-gradient(135deg, #ff2e63, #ff7eb9); color: #fff; border: none; font-weight: 700; }
+        .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); box-shadow: 0 6px 20px rgba(255,46,99,0.4); }
+        .btn-secondary { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); color: #b0b0b0; }
+        .btn-secondary:hover { border-color: rgba(255,178,239,0.5); color: #fff; }
+        .result-card { animation: fadeIn 0.5s ease-out; }
+        .glitch { position: relative; }
+        .glitch::before, .glitch::after { content: attr(data-text); position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+        .glitch::before { left: 2px; text-shadow: -2px 0 #ff2e63; clip: rect(24px, 550px, 90px, 0); animation: glitch-anim-1 4s infinite linear alternate; }
+        .glitch::after { left: -2px; text-shadow: -2px 0 #00f2ff; clip: rect(84px, 550px, 140px, 0); animation: glitch-anim-2 4s infinite linear alternate; }
+        @keyframes glitch-anim-1 { 0% { clip: rect(42px, 9999px, 44px, 0); } 20% { clip: rect(12px, 9999px, 59px, 0); } 40% { clip: rect(48px, 9999px, 29px, 0); } 60% { clip: rect(63px, 9999px, 27px, 0); } 80% { clip: rect(34px, 9999px, 55px, 0); } 100% { clip: rect(20px, 9999px, 91px, 0); } }
+        @keyframes glitch-anim-2 { 0% { clip: rect(65px, 9999px, 11px, 0); } 20% { clip: rect(52px, 9999px, 73px, 0); } 40% { clip: rect(85px, 9999px, 45px, 0); } 60% { clip: rect(23px, 9999px, 83px, 0); } 80% { clip: rect(72px, 9999px, 18px, 0); } 100% { clip: rect(92px, 9999px, 46px, 0); } }
+        .spark { display: inline-block; animation: sparkUp 1.5s infinite alternate; }
+        @keyframes sparkUp { 0% { transform: translateY(0) scale(1); opacity: 0.6; } 100% { transform: translateY(-6px) scale(1.15); opacity: 1; } }
+        /* Orbiting elements for cosmic vibe */
+        .orbit { position: absolute; border-radius: 50%; border: 1px solid rgba(255,178,239,0.06); animation: spin 30s linear infinite; pointer-events: none; }
+        .orbit-1 { width: 400px; height: 400px; top: 50%; left: 50%; margin: -200px 0 0 -200px; }
+        .orbit-2 { width: 550px; height: 550px; top: 50%; left: 50%; margin: -275px 0 0 -275px; border-color: rgba(0,242,255,0.04); animation-duration: 45s; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
     </style>
 </head>
-<body class="bg-[#0b0b0f] text-[#ececed] min-h-screen flex items-center justify-center p-5 overflow-hidden">
+<body>
+    <canvas id="cosmos"></canvas>
+    <div class="orbit orbit-1"></div>
+    <div class="orbit orbit-2"></div>
 
-    <div class="w-full max-w-[580px] z-10">
+    <!-- Language Switcher -->
+    <div class="fixed top-5 right-5 flex gap-2 z-50">
+        <button class="lang-btn active" onclick="setLang('en')" id="btn-en">EN</button>
+        <button class="lang-btn" onclick="setLang('ru')" id="btn-ru">RU</button>
+    </div>
+
+    <div class="w-full max-w-[580px] z-10 relative">
         
-        <div id="scr-welcome" class="card bg-[#16161a] border border-[#2d2d35] rounded-xl p-10 text-center shadow-2xl card-active">
-            <h1 class="text-2xl font-semibold mb-3 tracking-tight text-white">MXUserbot</h1>
-            <p class="text-[#94949e] text-sm mb-6">Expand the capabilities of your Matrix account.</p>
+        <div id="scr-welcome" class="card bg-[#0a0e14] border border-[#1f2a3a] rounded-2xl p-10 text-center shadow-2xl card-active backdrop-blur-sm">
+            <h1 class="text-3xl font-bold mb-4 tracking-tight text-white glitch" data-i18n="app_title" data-text="MXUserbot">MXUserbot</h1>
+            <p class="text-[#888] text-sm mb-6" data-i18n="welcome_subtitle"></p>
             
-            <div class="border-l-2 border-[#ffb2ef] pl-5 pr-3 py-3 mb-6 bg-[#ffb2ef]/[0.04] text-left">
-                <p class="text-sm leading-relaxed text-[#94949e]">
-                    <b class="text-[#ececed]">A userbot is a bot running through your own account.</b><br><br>
-                    It acts as <b>you</b>, with no limits other than the modules you install. Use it for anything: from <b>flexing on friends</b> to <b>automating your tasks</b>.<br><br>
-                    Your profile, your modules, your rules.
-                </p>
+            <div class="border-l-2 border-[#ff2e63] pl-5 pr-3 py-3 mb-6 bg-[#ff2e63]/[0.06] text-left">
+                <p class="text-xs leading-relaxed text-[#888]" data-i18n="welcome_desc" data-i18n-html="true"></p>
             </div>
 
-            <ul class="space-y-2.5 mb-8">
-                <li class="text-[#94949e] text-sm flex items-start text-left before:text-[#ffb2ef] before:mr-2.5 before:font-bold">
-                    🔐 | End-to-end encryption [E2EE] by default / SAS
+            <ul class="space-y-2.5 mb-8 text-left">
+                <li class="text-[#888] text-sm flex items-start gap-3">
+                    <span class="text-[#ff2e63] font-bold text-xs mt-0.5">●</span>
+                    <span data-i18n="feature_1"></span>
                 </li>
-                <li class="text-[#94949e] text-sm flex items-start text-left before:text-[#ffb2ef] before:mr-2.5 before:font-bold">
-                    📦 | Modular architecture for custom scripts
+                <li class="text-[#888] text-sm flex items-start gap-3">
+                    <span class="text-[#ff2e63] font-bold text-xs mt-0.5">●</span>
+                    <span data-i18n="feature_2"></span>
                 </li>
-                <li class="text-[#94949e] text-sm flex items-start text-left before:text-[#ffb2ef] before:mr-2.5 before:font-bold">
-                    🌐 | Support for third-party repositories
+                <li class="text-[#888] text-sm flex items-start gap-3">
+                    <span class="text-[#ff2e63] font-bold text-xs mt-0.5">●</span>
+                    <span data-i18n="feature_3"></span>
                 </li>
             </ul>
 
-            <button onclick="nav('scr-welcome', 'scr-warning')" class="w-full p-3.5 bg-[#ffb2ef] text-black rounded-lg text-sm font-semibold hover:opacity-90 active:scale-[0.98] transition-all">
-                Get Started
-            </button>
+            <button onclick="nav('scr-welcome', 'scr-warning')" class="w-full p-3.5 btn-primary text-white rounded-xl text-sm font-bold shadow-lg hover:shadow-xl transition-all" data-i18n="btn_get_started"></button>
         </div>
 
-        <div id="scr-warning" class="card bg-[#16161a] border border-[#2d2d35] rounded-xl p-10 text-center shadow-2xl">
-            <h1 class="text-2xl font-semibold mb-3 tracking-tight text-[#f87171]">⚠️ | WARNING | ⚠️</h1>
-            <p class="text-[#94949e] text-sm mb-6">Please review the terms of use.</p>
+        <div id="scr-warning" class="card bg-[#0a0e14] border border-[#1f2a3a] rounded-2xl p-10 text-center shadow-2xl backdrop-blur-sm">
+            <h1 class="text-2xl font-bold mb-4 tracking-tight text-[#ff6b8a]" data-i18n="warning_title"></h1>
+            <p class="text-[#888] text-sm mb-6" data-i18n="warning_subtitle"></p>
             
-            <div class="border-l-2 border-[#f87171] pl-5 pr-3 py-5 mb-6 bg-[#f87171]/[0.02] text-left">
-                <p class="text-sm leading-relaxed text-[#94949e]">
-                    This software is provided <b class="text-[#ececed]">"as is"</b>, without warranty of any kind, express or implied. By using this userbot, you acknowledge that:
-                    <br><br>
-                    • <b class="text-[#ececed]">Full Responsibility:</b> You are solely responsible for your actions and any consequences resulting from the use of this software.
-                    <br><br>
-                    • <b class="text-[#ececed]">No Liability:</b> The developer shall not be held liable for any damages, including but not limited to account bans, data loss, or legal issues.
-                    <br><br>
-                    • <b class="text-[#ececed]">Strict Prohibition:</b> Use of this bot for fraudulent activities, spam, or any actions that violate terms of service or local laws is strictly prohibited.
-                </p>
+            <div class="border-l-2 border-[#ff6b8a] pl-5 pr-3 py-5 mb-6 bg-[#ff6b8a]/[0.06] text-left">
+                <p class="text-xs leading-relaxed text-[#888]" data-i18n="warning_text"></p>
             </div>
 
             <div class="flex flex-col gap-3">
-                <button onclick="nav('scr-warning', 'scr-login')" class="w-full p-3.5 bg-[#ffb2ef] text-black rounded-lg text-sm font-semibold hover:opacity-90 active:scale-[0.98] transition-all">
-                    Accept and Continue
-                </button>
-                <button onclick="terminate()" class="w-full p-3.5 bg-transparent text-[#94949e] border border-[#2d2d35] rounded-lg text-sm font-semibold hover:text-white hover:border-[#444] transition-all">
-                    Decline
-                </button>
+                <button onclick="nav('scr-warning', 'scr-login')" class="w-full p-3.5 btn-primary text-white rounded-xl text-sm font-bold hover:shadow-lg transition-all" data-i18n="btn_accept"></button>
+                <button onclick="terminate()" class="w-full p-3.5 btn-secondary text-[#888] border border-[#1f2a3a] rounded-xl text-sm font-semibold hover:text-white hover:border-[#ff2e63] transition-all" data-i18n="btn_decline"></button>
             </div>
         </div>
 
-        <form id="scr-login" class="card bg-[#16161a] border border-[#2d2d35] rounded-xl p-10 text-center shadow-2xl">
-            <h1 class="text-2xl font-semibold mb-3 tracking-tight text-white">Authorization</h1>
-            <p class="text-[#94949e] text-sm mb-6">Connect your account to initialize the session.</p>
+        <form id="scr-login" class="card bg-[#0a0e14] border border-[#1f2a3a] rounded-2xl p-10 text-center shadow-2xl backdrop-blur-sm">
+            <h1 class="text-2xl font-bold mb-4 tracking-tight text-white" data-i18n="auth_title"></h1>
+            <p class="text-[#888] text-sm mb-6" data-i18n="auth_subtitle"></p>
             
             <div class="space-y-5 mb-6 text-left">
                 <div>
-                    <label class="block text-[11px] font-semibold text-[#94949e] mb-2 uppercase tracking-wider">Matrix ID</label>
-                    <input id="mxid" type="text" placeholder="@user:matrix.org" required class="w-full p-3.5 bg-black border border-[#2d2d35] rounded-lg text-white text-sm outline-none focus:border-[#ffb2ef] transition-all">
+                    <label class="block text-[11px] font-semibold text-[#888] mb-2 uppercase tracking-wider" data-i18n="label_mxid"></label>
+                    <input id="mxid" type="text" placeholder="@user:matrix.org" required class="w-full p-4 input-field text-white text-sm rounded-xl focus:ring-2 focus:ring-[#ff2e63] transition-all">
                 </div>
                 <div>
-                    <label class="block text-[11px] font-semibold text-[#94949e] mb-2 uppercase tracking-wider">Password</label>
-                    <input id="pass" type="password" placeholder="••••••••" required class="w-full p-3.5 bg-black border border-[#2d2d35] rounded-lg text-white text-sm outline-none focus:border-[#ffb2ef] transition-all">
+                    <label class="block text-[11px] font-semibold text-[#888] mb-2 uppercase tracking-wider" data-i18n="label_password"></label>
+                    <input id="pass" type="password" placeholder="••••••••" required class="w-full p-4 input-field text-white text-sm rounded-xl focus:ring-2 focus:ring-[#ff2e63] transition-all">
                 </div>
             </div>
 
             <div class="flex flex-col gap-3">
-                <button type="submit" class="w-full p-3.5 bg-[#ffb2ef] text-black rounded-lg text-sm font-semibold hover:opacity-90 active:scale-[0.98] transition-all">
-                    Sign In
-                </button>
-                <button type="button" onclick="nav('scr-login', 'scr-welcome')" class="w-full p-3.5 bg-transparent text-[#94949e] border border-[#2d2d35] rounded-lg text-sm font-semibold hover:text-white hover:border-[#444] transition-all text-center">
-                    Cancel
-                </button>
+                <button type="submit" class="w-full p-4 btn-primary text-white rounded-xl text-sm font-bold shadow-lg hover:shadow-xl transition-all" data-i18n="btn_signin"></button>
+                <button type="button" onclick="nav('scr-login', 'scr-welcome')" class="w-full p-4 btn-secondary text-[#888] border border-[#1f2a3a] rounded-xl text-sm font-semibold hover:text-white hover:border-[#ff2e63] transition-all" data-i18n="btn_cancel"></button>
             </div>
         </form>
 
-        <div id="scr-loading" class="card bg-[#16161a] border border-[#2d2d35] rounded-xl p-10 text-center shadow-2xl">
-            <div class="w-8 h-8 border-2 border-white/5 border-t-[#ffb2ef] rounded-full animate-spin mx-auto mb-5"></div>
-            <h1 class="text-2xl font-semibold mb-3 text-white">Initializing</h1>
-            <p class="text-[#94949e] text-sm">Establishing tunnel and syncing keys...</p>
+        <div id="scr-loading" class="card bg-[#0a0e14] border border-[#1f2a3a] rounded-2xl p-10 text-center shadow-2xl backdrop-blur-sm">
+            <div class="w-10 h-10 border-2 border-white/10 border-t-[#ff2e63] rounded-full animate-spin mx-auto mb-6"></div>
+            <h1 class="text-2xl font-bold mb-3 text-white" data-i18n="loading_title"></h1>
+            <p class="text-[#888] text-sm" data-i18n="loading_text"></p>
         </div>
 
-        <div id="scr-result" class="card bg-[#16161a] border border-[#2d2d35] rounded-xl p-10 text-center shadow-2xl">
-            <h1 id="res-title" class="text-2xl font-semibold mb-3 text-white">Status</h1>
-            <p id="res-desc" class="text-[#94949e] text-sm mb-6"></p>
+        <div id="scr-result" class="card bg-[#0a0e14] border border-[#1f2a3a] rounded-2xl p-10 text-center shadow-2xl result-card backdrop-blur-sm">
+            <h1 id="res-title" class="text-3xl font-bold mb-4 text-white glitch" data-i18n="result_title"></h1>
+            <p id="res-desc" class="text-[#888] text-sm mb-6 leading-relaxed"></p>
             <div id="res-actions"></div>
         </div>
     </div>
 
     <script>
+        let translations = {};
+        let currentLang = 'en';
+
+        // Procedural starfield on canvas — more stars, twinkling, drifting motion
+        const canvas = document.getElementById('cosmos');
+        const ctx = canvas.getContext('2d');
+        let stars =[];
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        class Star {
+            constructor() { this.reset(true); }
+            reset(init) {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
+                this.r = Math.random() * 1.2 + 0.2;
+                this.baseR = this.r;
+                this.twinkleSpeed = Math.random() * 0.03 + 0.01;
+                this.twinklePhase = Math.random() * Math.PI * 2;
+                this.driftX = (Math.random() - 0.5) * 0.15;
+                this.driftY = (Math.random() - 0.5) * 0.1;
+                this.alpha = Math.random() * 0.6 + 0.2;
+                this.trail =[];
+                if (init) for (let i = 0; i < 3; i++) this.trail.push({x: this.x, y: this.y});
+            }
+            update() {
+                this.twinklePhase += this.twinkleSpeed;
+                this.r = this.baseR + Math.sin(this.twinklePhase) * this.baseR * 0.5;
+                this.x += this.driftX + (Math.random() - 0.5) * 0.05;
+                this.y += this.driftY + (Math.random() - 0.5) * 0.03;
+                this.trail.shift();
+                this.trail.push({x: this.x, y: this.y});
+                if (this.x < -10) this.x = canvas.width + 10;
+                if (this.x > canvas.width + 10) this.x = -10;
+                if (this.y < -10) this.y = canvas.height + 10;
+                if (this.y > canvas.height + 10) this.y = -10;
+            }
+            draw() {
+                // trail
+                for (let i = 0; i < this.trail.length - 1; i++) {
+                    const t = this.trail[i];
+                    const a = (i / this.trail.length) * 0.2;
+                    ctx.beginPath();
+                    ctx.arc(t.x, t.y, this.r * (i / this.trail.length) * 0.6, 0, Math.PI * 2);
+                    ctx.fillStyle = `rgba(255,255,255,${a})`;
+                    ctx.fill();
+                }
+                // core
+                const grad = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.r * 3);
+                grad.addColorStop(0, `rgba(255,200,100,${this.alpha})`);
+                grad.addColorStop(0.5, `rgba(200,170,255,${this.alpha * 0.6})`);
+                grad.addColorStop(1, 'rgba(255,255,255,0)');
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.r * 3, 0, Math.PI * 2);
+                ctx.fillStyle = grad;
+                ctx.fill();
+            }
+        }
+        for (let i = 0; i < 120; i++) stars.push(new Star());
+        function animateStars() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            stars.forEach(s => { s.update(); s.draw(); });
+            requestAnimationFrame(animateStars);
+        }
+        animateStars();
+
+        // Simple floating particles
+        const particles =[];
+        for (let i = 0; i < 30; i++) {
+            particles.push({
+                x: Math.random() * canvas.width,
+                y: Math.random() * canvas.height,
+                r: Math.random() * 2 + 0.5,
+                vx: (Math.random() - 0.5) * 0.2,
+                vy: (Math.random() - 0.5) * 0.15 - 0.05,
+                a: Math.random() * 0.3 + 0.1
+            });
+        }
+        function animateParticles() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            // redraw stars every frame (simpler: only particles, stars are static-ish)
+            stars.forEach(s => { s.update(); s.draw(); });
+            particles.forEach(p => {
+                p.x += p.vx;
+                p.y += p.vy;
+                p.a += 0.002;
+                if (p.a > 0.3) p.vy -= 0.0005;
+                if (p.x < 0) p.x = canvas.width;
+                if (p.x > canvas.width) p.x = 0;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(150,180,255,${p.a})`;
+                ctx.fill();
+            });
+            requestAnimationFrame(animateParticles);
+        }
+        animateParticles();
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                const response = await fetch('/api/locale');
+                translations = await response.json();
+                setLang(currentLang);
+            } catch (error) {
+                console.error('Error fetching translations:', error);
+            }
+        });
+
+        function setLang(lang) {
+            currentLang = lang;
+            document.getElementById('btn-en').classList.toggle('active', lang === 'en');
+            document.getElementById('btn-ru').classList.toggle('active', lang === 'ru');
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                const translation = (translations[lang] && translations[lang][key]) || (translations['en'] && translations['en'][key]);
+                if (translation) {
+                    if (el.tagName === 'TITLE') {
+                        document.title = translation;
+                    } else if (el.tagName === 'H1' && el.classList.contains('glitch')) {
+                        el.innerHTML = `<span data-text="${translation}">${translation}</span>`;
+                    } else if (el.dataset.i18nHtml === 'true') {
+                        // Allow rich text only for explicitly marked translation fields.
+                        el.innerHTML = translation;
+                    } else {
+                        el.textContent = translation;
+                    }
+                }
+            });
+        }
+
         const nav = (from, to) => {
             const elFrom = document.getElementById(from);
             const elTo = document.getElementById(to);
-            
             elFrom.classList.remove('card-active');
             elFrom.classList.add('card-exit');
-            
             setTimeout(() => {
                 elFrom.classList.remove('card-exit');
                 elTo.classList.add('card-active');
-            }, 200);
+            }, 300);
         };
 
         const terminate = () => {
-            document.body.innerHTML = `
-                <div class="w-full max-w-[580px] bg-[#16161a] border border-[#f87171] rounded-xl p-10 text-center shadow-2xl card-active">
-                    <h1 class="text-2xl font-semibold mb-3 text-[#f87171]">Access Denied</h1>
-                    <p class="text-[#94949e] text-sm">Session terminated.</p>
+            const t = document.getElementById('res-title'), d = document.getElementById('res-desc'), a = document.getElementById('res-actions');
+            t.innerHTML = `<span data-text="${translations[currentLang].access_denied}">${translations[currentLang].access_denied}</span>`;
+            t.classList.add('text-[#ff6b8a]');
+            d.innerHTML = `<span data-text="${translations[currentLang].session_terminated}">${translations[currentLang].session_terminated}</span>`;
+            a.innerHTML = `<div class="mt-8 pt-5 border-t border-[#2a3a52] flex justify-center gap-5 text-xs">` +
+                `<a href="https://matrix.to/#/#SpacePashaHatsune:matrix.org" class="text-[#ff7eb9] hover:text-white hover:underline transition-colors">space</a>` +
+                `<a href="https://github.com/MxUserBot/MxUserbot" class="text-[#ff7eb9] hover:text-white hover:underline transition-colors">github</a>` +
+                `<a href="https://destream.net/live/Pashahatsune/donate" class="text-[#ff7eb9] hover:text-white hover:underline transition-colors">donate</a>` +
+                `</div>`;
+            document.body.querySelector('.card-active')?.classList.remove('card-active', 'bg-[#0a0e14]');
+            document.body.innerHTML += `
+                <div class="w-full max-w-[580px] bg-[#0a0e14] border border-[#2a3a52] rounded-2xl p-10 text-center shadow-2xl result-card backdrop-blur-sm">
+                    <h1 class="text-3xl font-bold mb-4 text-[#ff6b8a] glitch" data-i18n="access_denied"><span data-text="${translations[currentLang].access_denied}">${translations[currentLang].access_denied}</span></h1>
+                    <p class="text-[#888] text-sm">${d.innerHTML}</p>
                 </div>`;
         };
 
@@ -155,12 +306,10 @@
             e.preventDefault();
             const u = document.getElementById('mxid').value.trim();
             const p = document.getElementById('pass').value;
-            if(!u.includes(':')) return alert('Check Matrix ID format');
-
+            if(!u.includes(':')) return alert(translations[currentLang].mxid_format_error);
             nav('scr-login', 'scr-loading');
             const start = Date.now();
             let ok = false, msg = "";
-
             try {
                 const r = await fetch('/api/auth', {
                     method: 'POST',
@@ -169,29 +318,24 @@
                 });
                 const d = await r.json();
                 ok = r.ok; msg = d.detail || "";
-            } catch { msg = "Server unreachable"; }
-
+            } catch { msg = translations[currentLang].server_unreachable; }
             setTimeout(() => {
                 const t = document.getElementById('res-title'), d = document.getElementById('res-desc'), a = document.getElementById('res-actions');
                 if(ok) {
-                    t.innerText = "Success";
-                    d.innerText = "Session initialized. The userbot is now active.";
-                    a.innerHTML = `
-                        <button onclick="window.open('panel.html)" class="w-full p-3.5 bg-[#ffb2ef] text-black rounded-lg text-sm font-semibold hover:opacity-90 active:scale-[0.98] transition-all">
-                            Admin panel
-                        </button>
-                        <div class="mt-8 pt-5 border-t border-[#2d2d35] flex justify-center gap-5 text-xs">
-                            <a href="https://matrix.to/#/#SpacePashaHatsune:matrix.org" class="text-[#ffb2ef] hover:underline">space</a>
-                            <a href="https://github.com/MxUserBot/MxUserbot" class="text-[#ffb2ef] hover:underline">github</a>
-                            <a href="https://destream.net/live/Pashahatsune/donate" class="text-[#ffb2ef] hover:underline">donate</a>
-                        </div>`;
+                    t.innerHTML = `<span data-text="${translations[currentLang].result_success || 'Success'}">${translations[currentLang].result_success || 'Success'}</span>`;
+                    t.classList.add('text-white');
+                    d.innerHTML = translations[currentLang].session_initialized || "Session initialized. The userbot is now active.";
+                    a.innerHTML = `<button onclick="window.location.href='panel.html'" class="w-full p-4 bg-gradient-to-r from-[#ff2e63] to-[#ff7eb9] text-white rounded-xl text-sm font-bold shadow-lg hover:shadow-xl transition-all">${translations[currentLang].btn_panel || 'Admin Panel'}</button>` +
+                        `<div class="mt-8 pt-5 border-t border-[#2a3a52] flex justify-center gap-5 text-xs">` +
+                        `<a href="https://matrix.to/#/#SpacePashaHatsune:matrix.org" class="text-[#ff7eb9] hover:text-white hover:underline transition-colors">space</a>` +
+                        `<a href="https://github.com/MxUserBot/MxUserbot" class="text-[#ff7eb9] hover:text-white hover:underline transition-colors">github</a>` +
+                        `<a href="https://destream.net/live/Pashahatsune/donate" class="text-[#ff7eb9] hover:text-white hover:underline transition-colors">donate</a>` +
+                        `</div>`;
                 } else {
-                    t.innerText = "Failed"; t.classList.add('text-[#f87171]');
-                    d.innerText = msg || "Auth failed";
-                    a.innerHTML = `
-                        <button onclick="nav('scr-result', 'scr-login')" class="w-full p-3.5 bg-[#ffb2ef] text-black rounded-lg text-sm font-semibold hover:opacity-90 active:scale-[0.98] transition-all">
-                            Try Again
-                        </button>`;
+                    t.innerHTML = `<span data-text="${translations[currentLang].result_failed}">${translations[currentLang].result_failed}</span>`; 
+                    t.classList.add('text-[#ff6b8a]');
+                    d.innerHTML = `<span data-text="${msg || translations[currentLang].result_failed}">${msg || translations[currentLang].result_failed}</span>`;
+                    a.innerHTML = `<button onclick="nav('scr-result', 'scr-login')" class="w-full p-4 bg-[#2a3a52] text-[#b0b0b0] border border-[#3a4a62] rounded-xl text-sm font-semibold hover:bg-[#33455e] transition-colors" data-i18n="btn_try_again">${translations[currentLang].btn_try_again}</button>`;
                 }
                 nav('scr-loading', 'scr-result');
             }, Math.max(0, 1500 - (Date.now() - start)));
